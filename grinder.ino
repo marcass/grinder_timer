@@ -1,61 +1,85 @@
 //Runs a mazzer superjully grinder with timer
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 
 #define debug
 
 /* FINITE STATE MACHINE STATES
- *  state_idle -> state_grinding
- *  state grinding -> state_idle
+ *  STATE_IDLE -> STATE_GRINDING
+ *  state grinding -> STATE_IDLE
  */
-const int state_idle = 0;
-const int state_grinding = 1;
-int state = state_idle;
+ 
+const int STATE_IDLE = 0;
+const int STATE_GRINDING = 1;
+const int STATE_DONE = 2;
+int state = STATE_IDLE;
 
 // this constant won't change:
-const int grind_int = 0;  // 0 = digital pin 2
-const int grind_button = 2;
-const int relay = 3;
-//const int  buttonPin = 2;    // the pin that the pushbutton is attached to
-const int ledPin = 13;       // the pin that the LED is attached to
-int sensorPin = A0;    // select the input pin for the potentiometer
+
+const int MIN_GRIND_TIME = 5000;
+const int MAX_GRIND_TIME = 15000;
+const int NUM_ADC_STATES = 1024;
+
+const int GRIND_INT = 0;  // 0 = digital pin 2
+const int GRIND_BUTTON = 2;
+const int POTI_PIN = 3;    // select the input pin for the potentiometer
+const int RELAY_PIN = 13;
 
 
 // Variables will change:
 int buttonPushCounter = 0;   // counter for the number of button presses
 int buttonState = 0;         // current state of the button
 int lastButtonState = 0;     // previous state of the button
-unsigned long GRIND_START = 0;
-unsigned long GRIND_TIME;
+unsigned long grind_start = 0;
+unsigned long grind_time;
 unsigned long now;
-const int GRIND_PRESET = 9000; //9s Need to set via rotary dial and disply as integer of s to 1 deciaml place
+
+int val = 0;
+char buf[16];
+int grind_time_preset = MIN_GRIND_TIME;
+
 int sensorValue = 0;  // variable to store the value coming from the potentiaometer
 int sensorValueNew = 0;
 
 void setup() {
   // initialize the button pin as a input:
-  pinMode(grind_button, INPUT);
-  digitalWrite(grind_button, HIGH);
+  pinMode(GRIND_BUTTON, INPUT);
+  //digitalWrite(GRIND_BUTTON, HIGH);
+ 
   // initialize the LED as an output:
-  pinMode(ledPin, OUTPUT);
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW);
   // initialize serial communication:
-  Serial.begin(115200);
+  Serial.begin(9600);  // Used to type in characters
+  // initialize lcd
+  lcd.begin(16,2);
+  lcd.backlight(); // finish with backlight on  
+  lcd.clear();
   //attach interrupt for grind button
-  attachInterrupt(grind_int, grinding, FALLING); //check to see if wired falling or rising
+  attachInterrupt(GRIND_INT, grinding, FALLING); //check to see if wired falling or rising
 }
 
 
 void loop() {
   switch (state) {
-  case state_idle:
+  case STATE_IDLE:
     proc_idle();
     break;
-  case state_grinding:
+  case STATE_GRINDING:
     proc_grinding();
     break;
- }
+  case STATE_DONE:
+    proc_done();
+    break;
+  }
   manage_outputs();
+  update_display();
 }
 
 void proc_idle(){
+  grind_start = 0;
+  attachInterrupt(GRIND_INT, grinding, FALLING); //check to see if wired falling or rising
   #ifdef debug
     Serial.println(state);
   #endif
@@ -66,48 +90,74 @@ void proc_grinding(){
   #ifdef debug
     Serial.println(state);
   #endif
-  detachInterrupt(grind_button);
-  if (GRIND_START == 0){
-    GRIND_START = millis();
-  }else{
-    now = millis();
-    GRIND_TIME = now - GRIND_START;
+  detachInterrupt(GRIND_BUTTON);
+  if (grind_start == 0){
+    grind_start = millis();
+    lcd.clear();
   }
-  if (GRIND_TIME > GRIND_PRESET){
-    state = state_idle;
-    delay(3000);//delay of 3s for accidental repushing button
-    attachInterrupt(grind_int, grinding, FALLING); //check to see if wired falling or rising
+  now = millis();
+  grind_time = now - grind_start;
+  
+  if (grind_time > grind_time_preset){
+    state = STATE_DONE;
   }else{
     //do nothing
     #ifdef debug
       Serial.print("Grind time = ");
-      Serial.print(GRIND_TIME);
+      Serial.print(grind_time);
       Serial.println("s");
     #endif
   }
 }
 
+void proc_done(){
+    lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.write("Done.");
+    lcd.setCursor(0,1);
+    lcd.write("cool down..");
+    delay(3000);//delay of 3s for accidental repushing button
+    state = STATE_IDLE;
+    lcd.clear();
+}
+
 void grinding(){
-  state = state_grinding;
+  state = STATE_GRINDING;
 }
 
 void manage_outputs(){
-  if (state == state_grinding){
-    digitalWrite(relay, HIGH);
+  if (state == STATE_GRINDING){
+    digitalWrite(RELAY_PIN, HIGH);
   }else{
-    digitalWrite(relay, LOW);
-  }
-  // read the value from the sensor:
-  sensorValueNew = analogRead(sensorPin);
-  if (sensorValue < sensoreValueNew){
-    GRIND_PRESET = GRIND_PRESET - 100;
-  }
-  if (sensorValue > sensoreValueNew){
-    GRIND_PRESET = GRIND_PRESET + 100;
+    digitalWrite(RELAY_PIN, LOW);
   }
 }
 
+void update_display(){
+  if (state == STATE_GRINDING){
+    lcd.setCursor(0,0);
+    lcd.write("grinding...");
+    int percent = 100*grind_time/grind_time_preset;
+    int bar_frac = 16*grind_time/grind_time_preset;
+    sprintf(buf, "%3d %", percent);
+    lcd.write(buf);
+    lcd.setCursor(0,1);
+    for (int x = 0; x < 16; x++) {
+      if (x < bar_frac) {      lcd.write(3);}
+      else {lcd.write(20);}
+    }
 
+  }else{
+    val = analogRead(POTI_PIN);
+    grind_time_preset =  int(float(val)/(NUM_ADC_STATES-1) * (MAX_GRIND_TIME-MIN_GRIND_TIME)) + MIN_GRIND_TIME;
+    //lcd.clear();
+    lcd.setCursor(0,0);
+    lcd.write("Grinder Control");
+    lcd.setCursor(4,1);
+    sprintf(buf, "%5d ms", grind_time_preset);
+    lcd.write(buf);
+  }
+}
 
 
 
