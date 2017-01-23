@@ -7,7 +7,9 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I
 
 /* FINITE STATE MACHINE STATES
  *  STATE_IDLE -> STATE_GRINDING
- *  state grinding -> STATE_IDLE
+ *  STATE_DONE -> STATE_IDLE
+ *  STATE GRINDING -> STATE_DONE
+ *  
  */
  
 const int STATE_IDLE = 0;
@@ -25,7 +27,12 @@ const int GRIND_INT = 0;  // 0 = digital pin 2
 const int GRIND_BUTTON = 2;
 const int POTI_PIN = 3;    // select the input pin for the potentiometer
 const int RELAY_PIN = 13;
-
+//button for changing grind mode (timer or on push) or stopping a timed grind
+const int EVENT_BUTTON = 8; //or any button that is convenient
+unsigned long LAST_DEBOUNCE_TIME = 0;  // the last time the output pin was toggled
+unsigned long DEBOUNCE_DELAY = 50;    // the debounce time; increase if the output flickers
+//grinder mode. if timer is true it is timer! If false it is on demand grinding on button press
+boolean timer_mode = true;
 
 // Variables will change:
 int buttonPushCounter = 0;   // counter for the number of button presses
@@ -47,9 +54,12 @@ void setup() {
   pinMode(GRIND_BUTTON, INPUT);
   //digitalWrite(GRIND_BUTTON, HIGH);
  
-  // initialize the LED as an output:
+  // initialize the RELAY as an output:
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);
+  //initialize event button
+  pinMode(EVENT_BUTTON, INPUT);
+  digitalWrite(EVENT_BUTTON, HIGH); //check to see if it needs to be pulled up or down
   // initialize serial communication:
   Serial.begin(9600);  // Used to type in characters
   // initialize lcd
@@ -79,10 +89,46 @@ void loop() {
 
 void proc_idle(){
   grind_start = 0;
-  attachInterrupt(GRIND_INT, grinding, FALLING); //check to see if wired falling or rising
+  if (timer_mode){
+    attachInterrupt(GRIND_INT, grinding, FALLING); //check to see if wired falling or rising
+  }
   #ifdef debug
-    Serial.println(state);
+    Serial.print("State is ");
+    Serial.print(state);
+    Serial.print(": timer_mode: ");
+    Serial.println(timer_mode);
   #endif
+
+  /*
+   * Need to put stuff in here for grinding when in demand mode (!=timer_mode)
+   * So when button is pressed we ender grinding state. Must ride bike now
+   */
+  
+  // read the state of the switch into a local variable:
+  int event = digitalRead(EVENT_BUTTON);
+  // check to see if you just pressed the button
+  // (i.e. the input went from HIGH to LOW),  and you've waited
+  // long enough since the last press to ignore any noise:
+
+  // If the switch changed, due to noise or pressing:
+  if (event != lastButtonState) {
+    // reset the debouncing timer
+    lastDebounceTime = millis();
+  }
+  if ((millis() - lastDebounceTime) > debounceDelay) {
+    // whatever the reading is at, it's been there for longer
+    // than the debounce delay, so take it as the actual current state:
+
+    // if the button state has changed:
+    if (event != buttonState) {
+      buttonState = event;
+
+      // only toggle the grinder mode if the new button state is LOW
+      if (buttonState == LOW) {
+        timer_mode = !timer_mode;
+      }
+    }
+  }
   //do nothing
 }
 
@@ -90,6 +136,17 @@ void proc_grinding(){
   #ifdef debug
     Serial.println(state);
   #endif
+  switch(timer_mode) {
+    case false:
+      //grind on demand so while button is pushed we will grind
+      break;
+    case true:
+      timer_grinding();
+      break;
+  }
+
+
+void timer_grinding(){  
   detachInterrupt(GRIND_BUTTON);
   if (grind_start == 0){
     grind_start = millis();
