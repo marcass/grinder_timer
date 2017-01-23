@@ -16,6 +16,8 @@ const int grind_button = 2;
 const int relay = 3;
 //const int  buttonPin = 2;    // the pin that the pushbutton is attached to
 const int ledPin = 13;       // the pin that the LED is attached to
+int sensorPin = A0;    // select the input pin for the potentiometer
+
 
 // Variables will change:
 int buttonPushCounter = 0;   // counter for the number of button presses
@@ -25,6 +27,8 @@ unsigned long GRIND_START = 0;
 unsigned long GRIND_TIME;
 unsigned long now;
 const int GRIND_PRESET = 9000; //9s Need to set via rotary dial and disply as integer of s to 1 deciaml place
+int sensorValue = 0;  // variable to store the value coming from the potentiaometer
+int sensorValueNew = 0;
 
 void setup() {
   // initialize the button pin as a input:
@@ -92,6 +96,14 @@ void manage_outputs(){
     digitalWrite(relay, HIGH);
   }else{
     digitalWrite(relay, LOW);
+  }
+  // read the value from the sensor:
+  sensorValueNew = analogRead(sensorPin);
+  if (sensorValue < sensoreValueNew){
+    GRIND_PRESET = GRIND_PRESET - 100;
+  }
+  if (sensorValue > sensoreValueNew){
+    GRIND_PRESET = GRIND_PRESET + 100;
   }
 }
 
