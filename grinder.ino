@@ -27,7 +27,9 @@ const int NUM_ADC_STATES = 1024;
 const int GRIND_INT = 0;  // 0 = digital pin 2
 const int GRIND_BUTTON = 2;
 const int POTI_PIN = 3;    // select the input pin for the potentiometer
-const int RELAY_PIN = 13;
+//switching phase and neutral for safety
+const int RELAY_PIN_L = 13;
+const int RELAY_PIN_N = 12;
 //button for changing grind mode (timer or on push) or stopping a timed grind
 const int EVENT_BUTTON = 8; //or any button that is convenient
 unsigned long LAST_DEBOUNCE_TIME = 0;  // the last time the output pin was toggled
@@ -57,9 +59,11 @@ void setup() {
   pinMode(GRIND_BUTTON, INPUT);
   digitalWrite(GRIND_BUTTON, HIGH);
  
-  // initialize the RELAY as an output:
-  pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, LOW);
+  // initialize the RELAY as an outpuT (ACTIVE LOW RELAYS DAMNIT)
+  pinMode(RELAY_PIN_L, OUTPUT);
+  digitalWrite(RELAY_PIN_L, HIGH);
+  pinMode(RELAY_PIN_N, OUTPUT);
+  digitalWrite(RELAY_PIN_N, HIGH);
   //initialize event button
   pinMode(EVENT_BUTTON, INPUT);
   digitalWrite(EVENT_BUTTON, HIGH); //check to see if it needs to be pulled up or down
@@ -176,8 +180,8 @@ void timer_grinding(){
   }
   now = millis();
   grind_time = now - grind_start;
-  
-  if (grind_time > grind_time_preset){
+  //grinding ends if grind time reached or event button is pressed to cancel
+  if ((grind_time > grind_time_preset) || digitalRead(EVENT_BUTTON) == LOW)){
     state = STATE_DONE;
   }else{
     //do nothing
@@ -206,9 +210,11 @@ void grinding(){
 
 void manage_outputs(){
   if (state == STATE_GRINDING){
-    digitalWrite(RELAY_PIN, HIGH);
+    digitalWrite(RELAY_PIN_L, LOW);
+    digitalWrite(RELAY_PIN_N, LOW);
   }else{
-    digitalWrite(RELAY_PIN, LOW);
+    digitalWrite(RELAY_PIN_L, HIGH);
+    digitalWrite(RELAY_PIN_N, HIGH);
   }
 }
 
