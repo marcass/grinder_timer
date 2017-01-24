@@ -1,4 +1,4 @@
-//Runs a mazzer superjully grinder with timer
+//Runs a mazzer superjolly grinder with timer
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
@@ -8,7 +8,8 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I
 /* FINITE STATE MACHINE STATES
  *  STATE_IDLE -> STATE_GRINDING
  *  STATE_DONE -> STATE_IDLE
- *  STATE GRINDING -> STATE_DONE
+ *  STATE GRINDING -> STATE_DONE (timer mode)
+ *  STATE_GRINDING -> STATE_IDLE (on demand mode)
  *  
  */
  
@@ -38,6 +39,8 @@ boolean timer_mode = true;
 int buttonPushCounter = 0;   // counter for the number of button presses
 int buttonState = 0;         // current state of the button
 int lastButtonState = 0;     // previous state of the button
+int lastGrindButtonState = 0;
+int GrindButtonState = 0;
 unsigned long grind_start = 0;
 unsigned long grind_time;
 unsigned long now;
@@ -52,7 +55,7 @@ int sensorValueNew = 0;
 void setup() {
   // initialize the button pin as a input:
   pinMode(GRIND_BUTTON, INPUT);
-  //digitalWrite(GRIND_BUTTON, HIGH);
+  digitalWrite(GRIND_BUTTON, HIGH);
  
   // initialize the RELAY as an output:
   pinMode(RELAY_PIN, OUTPUT);
@@ -101,8 +104,27 @@ void proc_idle(){
 
   /*
    * Need to put stuff in here for grinding when in demand mode (!=timer_mode)
-   * So when button is pressed we ender grinding state. Must ride bike now
+   * So when button is pressed we enter grinding state. Must ride bike now
    */
+   if (!timer_mode){
+     int slap = digitalRead(GRIND_BUTTON); 
+     if (slap == LOW){
+       //do debounce stuff
+       //set button state to look for changes
+       if (slap != lastGrindButtonState){
+         // reset the debouncing timer     
+         LAST_GRIND_DEBOUNCE_TIME = millis();
+       }
+       if (millis() - LAST_GRIND_DEBOUNCE_TIME > debounceDelay) {
+        state = STATE_GRINDING;
+       }
+     }else{
+      state = STATE_IDLE;
+     }
+     if (slap != GrindButtonState){
+      GrindButtonState = slap);
+     }
+   }
   
   // read the state of the switch into a local variable:
   int event = digitalRead(EVENT_BUTTON);
