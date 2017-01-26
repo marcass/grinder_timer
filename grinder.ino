@@ -33,23 +33,20 @@ const int RELAY_PIN_L = 13;
 const int RELAY_PIN_N = 12;
 //button for changing grind mode (timer or on push) or stopping a timed grind
 const int EVENT_BUTTON = 8; //or any button that is convenient
-int lastGrindButtonState = HIGH;
-int GrindButtonState;
-unsigned long LAST_DEBOUNCE_TIME = 0;  // the last time the output pin was toggled
 unsigned long DEBOUNCE_DELAY = 50;    // the debounce time; increase if the output flickers
-unsigned long LAST_GRIND_DEBOUNCE_TIME;
-//grinder mode. if timer is true it is timer! If false it is on demand grinding on button press
-boolean timer_mode = true;
 
 // Variables will change:
 int buttonPushCounter = 0;   // counter for the number of button presses
 int buttonState = 0;         // current state of the button
 int lastButtonState = 0;     // previous state of the button
-int lastGrindButtonState = 0;
-int GrindButtonState = 0;
 unsigned long grind_start = 0;
 unsigned long grind_time;
 unsigned long now;
+unsigned long present;
+unsigned long event_press = 0;  // the last time the output pin was toggled
+unsigned long GRIND_DEBOUNCE_TIME;
+//grinder mode. if timer is true it is timer! If false it is on demand grinding on button press
+boolean timer_mode = true;
 
 int val = 0;
 char buf[16];
@@ -85,7 +82,7 @@ void setup() {
   attachInterrupt(GRIND_INT, grinding, FALLING); //check to see if wired falling or rising
 }
 
-//neeed to place functions above calls in new arduino ide
+//need to place functions above calls in new arduino ide
 void proc_idle(){
   grind_start = 0;
   if (timer_mode){
@@ -98,70 +95,46 @@ void proc_idle(){
     Serial.println(timer_mode);
   #endif
 
-  /*
-   * Need to put stuff in here for grinding when in demand mode (!=timer_mode)
-   * So when button is pressed we enter grinding state. Must ride bike now
-   * fix with https://www.arduino.cc/en/Tutorial/Debounce
-   */
-   if (!timer_mode){
-     int slap = digitalRead(GRIND_BUTTON); 
-     if (slap == LOW){
-       //do debounce stuff
-       //set button state to look for changes
-       if (slap != lastGrindButtonState){
-         // reset the debouncing timer     
-         LAST_GRIND_DEBOUNCE_TIME = millis();
-       }
-       if (millis() - LAST_GRIND_DEBOUNCE_TIME > DEBOUNCE_DELAY) {
-        state = STATE_GRINDING;
-       }
-     }else{
-      state = STATE_IDLE;
-     }
-     if (slap != GrindButtonState){
-      GrindButtonState = slap;
-     }
-   }
-  
-  // read the state of the switch into a local variable:
-  int event = digitalRead(EVENT_BUTTON);
-  // check to see if you just pressed the button
-  // (i.e. the input went from HIGH to LOW),  and you've waited
-  // long enough since the last press to ignore any noise:
-
-  // If the switch changed, due to noise or pressing:
-  if (event != lastButtonState) {
-    // reset the debouncing timer
-    LAST_DEBOUNCE_TIME = millis();
-  }
-    // whatever the reading is at, it's been there for longer
-    // than the debounce delay, so take it as the actual current state:
-
-    // if the button state has changed:
-    if (event != buttonState) {
-      buttonState = event;
-
-      // only toggle the grinder mode if the new button state is LOW
-      if (buttonState == LOW) {
-        timer_mode = !timer_mode;
+  //if not in timer mode need to grind on button push
+  if (!timer_mode){
+    int slap = digitalRead(GRIND_BUTTON); 
+    if (slap == LOW){
+      //do debounce stuff
+      if (GRIND_DEBOUNCE_TIME == 0){
+        GRIND_DEBOUNCE_TIME = millis();
       }
+      if (millis() - GRIND_DEBOUNCE_TIME > DEBOUNCE_DELAY) {
+        //over debounce threshold so change state
+        state = STATE_GRINDING;
+      }else{
+        state = STATE_IDLE;
+      }
+    }else{
+      state = STATE_IDLE;
     }
   }
-  //do nothing
+  
+  // To change grinding mode in idle read the state of the switch into a local variable:
+  int event = digitalRead(EVENT_BUTTON);
+  if (event == LOW){
+    // check to see if you just pressed the button
+    // (i.e. the input went from HIGH to LOW),  and you've waited
+    // long enough since the last press to ignore any noise:
+    //set debounce start
+    if (event_press == 0){
+      event_press == millis();
+    }
+    
+    if (millis() - event_press > DEBOUNCE_DELAY) {
+      //over debounce threshold so change mode
+      timer_mode != timer_mode;
+      //have a pause for bounce on unpressing button
+      delay(100);
+      //reset variables
+      event_press = 0;
+     }
+   }
 }
-
-void proc_grinding(){
-  #ifdef debug
-    Serial.println(state);
-  #endif
-  switch(timer_mode) {
-    case false:
-      //grind on demand so while button is pushed we will grind
-      break;
-    case true:
-      timer_grinding();
-      break;
-  }
 
 
 void timer_grinding(){  
@@ -173,7 +146,7 @@ void timer_grinding(){
   now = millis();
   grind_time = now - grind_start;
   //grinding ends if grind time reached or event button is pressed to cancel
-  if ((grind_time > grind_time_preset) || digitalRead(EVENT_BUTTON) == LOW)){
+  if ((grind_time > grind_time_preset) || (digitalRead(EVENT_BUTTON) == LOW)){
     state = STATE_DONE;
   }else{
     //do nothing
@@ -182,6 +155,23 @@ void timer_grinding(){
       Serial.print(grind_time);
       Serial.println("s");
     #endif
+  }
+}
+
+void proc_grinding(){
+  #ifdef debug
+    Serial.println(state);
+  #endif
+  switch(timer_mode) {
+    case false:
+      //grind on demand so while button is pushed we will grind
+      if (digitalRead(GRIND_BUTTON) == HIGH){
+        state = STATE_IDLE;
+      }
+      break;
+    case true:
+      timer_grinding();
+      break;
   }
 }
 
