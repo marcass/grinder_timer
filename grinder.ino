@@ -68,7 +68,7 @@ void grinding(){
 void setup() {
   // initialize the button pin as a input:
   pinMode(GRIND_BUTTON, INPUT);
-  digitalWrite(GRIND_BUTTON, HIGH);
+  digitalWrite(GRIND_BUTTON, LOW);
  
   // initialize the RELAY as an output
   pinMode(RELAY_PIN_L, OUTPUT);
@@ -85,39 +85,37 @@ void setup() {
   lcd.backlight(); // finish with backlight on  
   lcd.clear();
   //attach interrupt for grind button
-  attachInterrupt(GRIND_INT, grinding, FALLING); //check to see if wired falling or rising
+  attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
+}
+
+void state_change() {
+  detachInterrupt(EVENT_BUTTON);
+  switch (prev_state) {
+    case STATE_IDLE_TIMER:
+      state = STATE_IDLE_DEMAND;
+      break;
+    case STATE_IDLE_DEMAND:
+       state = STATE_IDLE_TIMER;
+      break;
+  }
 }
 
 //need to place functions above calls in new arduino ide
 void proc_idle_timer(){
   grind_start = 0;
   cool_start = 0;
-  attachInterrupt(GRIND_INT, grinding, FALLING); //check to see if wired falling or rising
+  attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
   //set this as state to return to
   prev_state = state;
   // To change grinding mode in idle read the state of the switch into a local variable:
   
-  if (digitalRead(EVENT_BUTTON) == HIGH){
-    // check to see if you just pressed the button
-    // and you've waited
-    // long enough since the last press to ignore any noise:
-    //set debounce start
-    if (event_press == 0){
-      event_press = millis();
-    }
-    if (millis() - event_press > DEBOUNCE_DELAY) {
-      //over debounce threshold so change mode
-      state = STATE_IDLE_DEMAND;
-      detachInterrupt(GRIND_BUTTON);
-      //have a pause for bounce on unpressing button
-      delay(2000);
-      //reset variables
-      event_press = 0;
-     }
-   }
+  
+  //for state change while in idle
+  attachInterrupt(EVENT_INT, state_change, RISING);
 }
 
 void proc_idle_demand() {
+  detachInterrupt(GRIND_BUTTON);
   //if not in timer mode need to grind on button push
   prev_state = state;
   if (digitalRead(GRIND_BUTTON) == HIGH) { 
@@ -130,30 +128,33 @@ void proc_idle_demand() {
       //over debounce threshold so change state
       state = STATE_GRINDING;
     }
- // To change grinding mode in idle read the state of the switch into a local variable:
-  if (digitalRead(EVENT_BUTTON) == HIGH){
-    // check to see if you just pressed the button
-    // and you've waited
-    // long enough since the last press to ignore any noise:
-    //set debounce start
-    if (event_press == 0){
-      event_press = millis();
-    }
-    if (millis() - event_press > DEBOUNCE_DELAY) {
-      //over debounce threshold so change mode
-      state = STATE_IDLE_TIMER;
-      //have a pause for bounce on unpressing button
-      delay(2000);
-      //reset variables
-      event_press = 0;
-     }
-   } 
+
+//    
+// // To change grinding mode in idle read the state of the switch into a local variable:
+//  if (digitalRead(EVENT_BUTTON) == HIGH){
+//    // check to see if you just pressed the button
+//    // and you've waited
+//    // long enough since the last press to ignore any noise:
+//    //set debounce start
+//    if (event_press == 0){
+//      event_press = millis();
+//    }
+//    if (millis() - event_press > DEBOUNCE_DELAY) {
+//      //over debounce threshold so change mode
+//      state = STATE_IDLE_TIMER;
+//      //have a pause for bounce on unpressing button
+//      delay(2000);
+//      //reset variables
+//      event_press = 0;
+//     }
+//   } 
   }
+  //for state change while in idle
+  attachInterrupt(EVENT_INT, state_change, RISING);      
 }
 
 void stop_grinding(){
   state = STATE_DONE;
-  detachInterrupt(EVENT_BUTTON);
 }
 
 void timer_grinding(){  
@@ -164,7 +165,7 @@ void timer_grinding(){
   }
   now = millis();
   grind_time = now - grind_start;
-  attachInterrupt(EVENT_INT, stop_grinding, FALLING);
+  attachInterrupt(EVENT_INT, stop_grinding, RISING);
   //grinding ends if grind time reached or event button is pressed to cancel
   if (grind_time > grind_time_preset){
     //handle a cancellation push of button with interrupt on event button
@@ -180,6 +181,7 @@ void timer_grinding(){
 }
 
 void proc_grinding(){
+  //detachInterrupt(GRIND_BUTTON);
   #ifdef debug
     Serial.println(state);
   #endif
@@ -200,19 +202,27 @@ void proc_grinding(){
 
 void proc_done(){
     detachInterrupt(EVENT_BUTTON);
+    detachInterrupt(GRIND_BUTTON);
     lcd.clear();
     lcd.setCursor(0,0);
     lcd.write("Done.");
     lcd.setCursor(0,1);
     lcd.write("cool down..");
-    //delay doesn't woprk here as relays stay high so need to do an async time test
+    //delay doesn't work here as relays stay high so need to do an async time test
     if (cool_start == 0) {
       cool_start = millis();
     }
     if (millis() - cool_start > COOL_DOWN) {
-      state = prev_state;
-      lcd.clear();
-      GRIND_DEBOUNCE_TIME = 0;
+      if (digitalRead(GRIND_BUTTON) == HIGH) {
+        //reset timer as PF still in grinder
+        cool_start = 0;
+      }else {
+        state = prev_state;
+        lcd.clear();
+        GRIND_DEBOUNCE_TIME = 0;
+      }
+    }else {
+      state = STATE_DONE;
     }
 }
 
