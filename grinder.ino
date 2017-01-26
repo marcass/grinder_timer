@@ -1,5 +1,6 @@
 //Runs a mazzer superjolly grinder with timer
 #include <Wire.h>
+//https://bitbucket.org/fmalpartida/new-liquidcrystal/downloadsla
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 
@@ -32,8 +33,11 @@ const int RELAY_PIN_L = 13;
 const int RELAY_PIN_N = 12;
 //button for changing grind mode (timer or on push) or stopping a timed grind
 const int EVENT_BUTTON = 8; //or any button that is convenient
+int lastGrindButtonState = HIGH;
+int GrindButtonState;
 unsigned long LAST_DEBOUNCE_TIME = 0;  // the last time the output pin was toggled
 unsigned long DEBOUNCE_DELAY = 50;    // the debounce time; increase if the output flickers
+unsigned long LAST_GRIND_DEBOUNCE_TIME;
 //grinder mode. if timer is true it is timer! If false it is on demand grinding on button press
 boolean timer_mode = true;
 
@@ -53,6 +57,10 @@ int grind_time_preset = MIN_GRIND_TIME;
 
 int sensorValue = 0;  // variable to store the value coming from the potentiaometer
 int sensorValueNew = 0;
+
+void grinding(){
+  state = STATE_GRINDING;
+}
 
 void setup() {
   // initialize the button pin as a input:
@@ -77,23 +85,7 @@ void setup() {
   attachInterrupt(GRIND_INT, grinding, FALLING); //check to see if wired falling or rising
 }
 
-
-void loop() {
-  switch (state) {
-  case STATE_IDLE:
-    proc_idle();
-    break;
-  case STATE_GRINDING:
-    proc_grinding();
-    break;
-  case STATE_DONE:
-    proc_done();
-    break;
-  }
-  manage_outputs();
-  update_display();
-}
-
+//neeed to place functions above calls in new arduino ide
 void proc_idle(){
   grind_start = 0;
   if (timer_mode){
@@ -109,6 +101,7 @@ void proc_idle(){
   /*
    * Need to put stuff in here for grinding when in demand mode (!=timer_mode)
    * So when button is pressed we enter grinding state. Must ride bike now
+   * fix with https://www.arduino.cc/en/Tutorial/Debounce
    */
    if (!timer_mode){
      int slap = digitalRead(GRIND_BUTTON); 
@@ -119,14 +112,14 @@ void proc_idle(){
          // reset the debouncing timer     
          LAST_GRIND_DEBOUNCE_TIME = millis();
        }
-       if (millis() - LAST_GRIND_DEBOUNCE_TIME > debounceDelay) {
+       if (millis() - LAST_GRIND_DEBOUNCE_TIME > DEBOUNCE_DELAY) {
         state = STATE_GRINDING;
        }
      }else{
       state = STATE_IDLE;
      }
      if (slap != GrindButtonState){
-      GrindButtonState = slap);
+      GrindButtonState = slap;
      }
    }
   
@@ -139,9 +132,8 @@ void proc_idle(){
   // If the switch changed, due to noise or pressing:
   if (event != lastButtonState) {
     // reset the debouncing timer
-    lastDebounceTime = millis();
+    LAST_DEBOUNCE_TIME = millis();
   }
-  if ((millis() - lastDebounceTime) > debounceDelay) {
     // whatever the reading is at, it's been there for longer
     // than the debounce delay, so take it as the actual current state:
 
@@ -204,10 +196,6 @@ void proc_done(){
     lcd.clear();
 }
 
-void grinding(){
-  state = STATE_GRINDING;
-}
-
 void manage_outputs(){
   if (state == STATE_GRINDING){
     digitalWrite(RELAY_PIN_L, LOW);
@@ -237,12 +225,35 @@ void update_display(){
     grind_time_preset =  int(float(val)/(NUM_ADC_STATES-1) * (MAX_GRIND_TIME-MIN_GRIND_TIME)) + MIN_GRIND_TIME;
     //lcd.clear();
     lcd.setCursor(0,0);
-    lcd.write("Grinder Control");
+    if (!timer_mode){
+      lcd.write("Demand");
+    }else{
+      lcd.write("Timer");
+    }
     lcd.setCursor(4,1);
     sprintf(buf, "%5d ms", grind_time_preset);
     lcd.write(buf);
   }
 }
+
+
+void loop() {
+  switch (state) {
+  case STATE_IDLE:
+    proc_idle();
+    break;
+  case STATE_GRINDING:
+    proc_grinding();
+    break;
+  case STATE_DONE:
+    proc_done();
+    break;
+  }
+  manage_outputs();
+  update_display();
+}
+
+
 
 
 
