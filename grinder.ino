@@ -42,10 +42,10 @@ const int DEBOUNCE_DELAY = 50;    // the debounce time; increase if the output f
 // Variables will change:
 unsigned long grind_start = 0;
 unsigned long cool_start = 0;
+unsigned long cool_time = 0;
 unsigned long grind_time;
 unsigned long now;
 unsigned long GRIND_DEBOUNCE_TIME = 0;
-//grinder mode. if timer is true it is timer! If false it is on demand grinding on button press
 int prev_state = 0; //place holder for state to exit state_doe to
 
 int val = 0;
@@ -79,7 +79,7 @@ void setup() {
   lcd.backlight(); // finish with backlight on  
   lcd.clear();
   //attach interrupt for grind button
-  attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
+  //attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
 }
 
 void state_change() {
@@ -96,8 +96,6 @@ void state_change() {
 
 //need to place functions above calls in new arduino ide
 void proc_idle_timer(){
-  grind_start = 0;
-  cool_start = 0;
   attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
   //set this as state to return to
   prev_state = state;
@@ -129,9 +127,11 @@ void proc_idle_demand() {
 
 void stop_grinding(){
   state = STATE_DONE;
+  
 }
 
 void timer_grinding(){  
+  cool_start = 0;
   detachInterrupt(GRIND_BUTTON);
     if (grind_start == 0){
     grind_start = millis();
@@ -174,26 +174,17 @@ void proc_grinding(){
 }
 
 void proc_done(){
+    grind_start = 0;
     detachInterrupt(EVENT_BUTTON);
-    detachInterrupt(GRIND_BUTTON);
     lcd.clear();
     lcd.setCursor(0,0);
     lcd.write("Done.");
     lcd.setCursor(0,1);
     lcd.write("cool down..");
     //delay doesn't work here as relays stay high so need to do an async time test
-    if (cool_start == 0) {
-      cool_start = millis();
-    }
-    if (millis() - cool_start > COOL_DOWN) {
-      if (digitalRead(GRIND_BUTTON) == HIGH) {
-        //reset timer as PF still in grinder
-        cool_start = 0;
-      }else {
-        state = prev_state;
-        lcd.clear();
-        GRIND_DEBOUNCE_TIME = 0;
-      }
+    if (digitalRead(GRIND_BUTTON) == LOW) {
+       delay(COOL_DOWN);
+       state = prev_state;
     }else {
       state = STATE_DONE;
     }
@@ -267,6 +258,8 @@ void loop() {
  #ifdef debug
   Serial.print("State is ");
   Serial.print(state);
+  Serial.print("   Cool time = ");
+  Serial.print(cool_time);
   Serial.print("     Preivious state is: ");
   Serial.println(prev_state);
  #endif 
