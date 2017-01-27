@@ -34,7 +34,7 @@ const int EVENT_BUTTON = 3; //ned interrupt on this button too
 const int EVENT_INT = 1; //digital pin 3
 const int POTI_PIN = 3;    // select the input pin for the potentiometer analogue pin 3
 //switching phase and neutral for safety
-const int RELAY_PIN_L = 13;
+const int RELAY_PIN_L = 11;
 const int RELAY_PIN_N = 12;
 //button for changing grind mode (timer or on push) or stopping a timed grind
 const int DEBOUNCE_DELAY = 50;    // the debounce time; increase if the output flickers
@@ -65,10 +65,10 @@ void setup() {
   digitalWrite(GRIND_BUTTON, LOW);
  
   // initialize the RELAY as an output
-  pinMode(RELAY_PIN_L, OUTPUT);
-  digitalWrite(RELAY_PIN_L, LOW);
   pinMode(RELAY_PIN_N, OUTPUT);
   digitalWrite(RELAY_PIN_N, LOW);
+  pinMode(RELAY_PIN_L, OUTPUT);
+  digitalWrite(RELAY_PIN_L, LOW);  
   //initialize event button
   pinMode(EVENT_BUTTON, INPUT);
   digitalWrite(EVENT_BUTTON, LOW); //check to see if it needs to be pulled up or down
@@ -183,6 +183,7 @@ void proc_done(){
     lcd.write("cool down..");
     //delay doesn't work here as relays stay high so need to do an async time test
     if (digitalRead(GRIND_BUTTON) == LOW) {
+       manage_outputs();
        delay(COOL_DOWN);
        state = prev_state;
     }else {
@@ -218,7 +219,7 @@ void update_display(){
         break;
       case STATE_IDLE_DEMAND:
          lcd.setCursor(0,1);
-         lcd.write("your pussy");
+         lcd.write("bu");//funny joke
          break;
     }
   }else{
