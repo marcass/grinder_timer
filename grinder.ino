@@ -97,6 +97,10 @@ void state_change() {
 //need to place functions above calls in new arduino ide
 void proc_idle_timer(){
   attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
+  //If just entered this state need to delay for debounce
+  if (prev_state != state) {
+    delay(1000);
+  }
   //set this as state to return to
   prev_state = state;
   // To change grinding mode in idle read the state of the switch into a local variable:
@@ -107,8 +111,12 @@ void proc_idle_timer(){
 }
 
 void proc_idle_demand() {
-  detachInterrupt(GRIND_BUTTON);
   //if not in timer mode need to grind on button push
+  detachInterrupt(GRIND_BUTTON);
+  //If just entered this state need to delay for debounce
+  if (prev_state != state) {
+    delay(1000);
+  }
   prev_state = state;
   if (digitalRead(GRIND_BUTTON) == HIGH) { 
   
@@ -183,8 +191,11 @@ void proc_done(){
     lcd.write("cool down..");
     //delay doesn't work here as relays stay high so need to do an async time test
     if (digitalRead(GRIND_BUTTON) == LOW) {
+       //do the relay stuff
        manage_outputs();
-       delay(COOL_DOWN);
+       if (prev_state == STATE_IDLE_TIMER) {
+         delay(COOL_DOWN);
+       }
        lcd.clear();
        state = prev_state;
     }else {
