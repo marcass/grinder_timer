@@ -185,6 +185,7 @@ void proc_done(){
     if (digitalRead(GRIND_BUTTON) == LOW) {
        manage_outputs();
        delay(COOL_DOWN);
+       lcd.clear();
        state = prev_state;
     }else {
       state = STATE_DONE;
@@ -205,9 +206,9 @@ void update_display(){
   if (state == STATE_GRINDING){
     lcd.setCursor(0,0);
     lcd.write("grinding...");
-    int percent = 100*grind_time/grind_time_preset;
+    //int percent = 100*grind_time/grind_time_preset;
     int bar_frac = 16*grind_time/grind_time_preset;
-    sprintf(buf, "%3d %", percent);
+    //sprintf(buf, "%3d %", percent);
     switch (prev_state) {
       case STATE_IDLE_TIMER:
         lcd.write(buf);
@@ -219,7 +220,7 @@ void update_display(){
         break;
       case STATE_IDLE_DEMAND:
          lcd.setCursor(0,1);
-         lcd.write("bu");//funny joke
+         lcd.write("              ");
          break;
     }
   }else{
@@ -230,7 +231,7 @@ void update_display(){
     if (prev_state == STATE_IDLE_DEMAND){
       lcd.write("Demand");
     }else{
-      lcd.write("Timer");
+      lcd.write("Timer  ");
     }
     lcd.setCursor(4,1);
     sprintf(buf, "%5d ms", grind_time_preset);
