@@ -15,11 +15,15 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I
  *  
  */
  
-const int STATE_IDLE_TIMER = 0;
+const int STATE_IDLE = 0;
 const int STATE_GRINDING = 1;
 const int STATE_DONE = 2;
-const int STATE_IDLE_DEMAND = 3;
-int state = STATE_IDLE_TIMER;
+
+const int MODE_TIMER = 0;
+const int MODE_DEMAND = 1;
+
+int state = STATE_IDLE;
+int mode = MODE_TIMER;
 
 // this constant won't change:
 
@@ -42,14 +46,11 @@ const int DEBOUNCE_DELAY = 50;    // the debounce time; increase if the output f
 
 // Variables will change:
 unsigned long grind_start = 0;
-unsigned long cool_start = 0;
-unsigned long cool_time = 0;
-unsigned long grind_time;
+unsigned long grind_time = 0;
 unsigned long now;
 unsigned long grind_debounce_time = 0;
 int status_led_brightness = 0;
-int fade_rate = 1;
-int prev_state = 0; //place holder for state to exit state_doe to
+int fade_rate = 10;
 
 int val = 0;
 char buf[16];
@@ -57,10 +58,6 @@ int grind_time_preset = MIN_GRIND_TIME;
 
 int sensorValue = 0;  // variable to store the value coming from the potentiaometer
 int sensorValueNew = 0;
-
-void grinding(){
-  state = STATE_GRINDING;
-}
 
 void setup() {
   // initialize the button pin as an input
@@ -83,47 +80,63 @@ void setup() {
   lcd.backlight(); // finish with backlight on  
   lcd.clear();
   //attach interrupt for grind button
-  //attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
-}
-
-void state_change() {
-  detachInterrupt(EVENT_BUTTON);
-  switch (prev_state) {
-    case STATE_IDLE_TIMER:
-      state = STATE_IDLE_DEMAND;
-      break;
-    case STATE_IDLE_DEMAND:
-       state = STATE_IDLE_TIMER;
-      break;
-  }
-}
-
-//need to place functions above calls in new arduino ide
-void proc_idle_timer(){
   attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
-  //If just entered this state need to delay for debounce
-  if (prev_state != state) {
-    delay(1000);
-  }
-  //set this as state to return to
-  prev_state = state;
-  // To change grinding mode in idle read the state of the switch into a local variable:
-  
-  
-  //for state change while in idle
-  attachInterrupt(EVENT_INT, state_change, RISING);
+  attachInterrupt(EVENT_INT, mode_change, RISING);
 }
 
-void proc_idle_demand() {
-  //if not in timer mode need to grind on button push
-  detachInterrupt(GRIND_BUTTON);
-  //If just entered this state need to delay for debounce
-  if (prev_state != state) {
-    delay(1000);
+void mode_change() {
+  lcd.clear();
+  switch (mode) {
+    case MODE_TIMER:
+      mode = MODE_DEMAND;
+      break;
+    case MODE_DEMAND:
+       //attachInterrupt(EVENT_INT, mode_change, RISING);
+       mode = MODE_TIMER;
+      break;
   }
-  prev_state = state;
-  if (digitalRead(GRIND_BUTTON) == HIGH) { 
+  delay(500);
+  goto_idle();
+  //attachInterrupt(EVENT_INT, mode_change, RISING);
+}
+
+void grinding(){
+  detachInterrupt(GRIND_INT);
+  detachInterrupt(EVENT_INT);
+  attachInterrupt(EVENT_INT, stop_grinding, RISING);
+  state = STATE_GRINDING;
+  delay(50);
+}
+
+void goto_idle(){
+  if (mode == MODE_DEMAND) {
+    detachInterrupt(GRIND_INT);
+  } else {
+    attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
+  }
+  detachInterrupt(EVENT_INT);
+  attachInterrupt(EVENT_INT, mode_change, RISING);
+  state = STATE_IDLE;
+}
+
+
+//  attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
+//  attachInterrupt(EVENT_INT, mode_change, RISING);
+//  attachInterrupt(EVENT_INT, stop_grinding, RISING);
+
+long int new_val;
+void proc_idle() {
+  val = analogRead(POTI_PIN);
+  grind_time_preset =  int(float(val)/(NUM_ADC_STATES-1) * (MAX_GRIND_TIME-MIN_GRIND_TIME)) + MIN_GRIND_TIME;
+  if (abs(val-new_val) > 20 ) {
+    update_display();
+    new_val = val;
+  }
   
+  //if not in timer mode need to grind on button push
+  //detachInterrupt(GRIND_BUTTON);
+  //If just entered this state need to delay for debounce
+  if (digitalRead(GRIND_BUTTON) == HIGH) { 
     //do debounce stuff
     if (grind_debounce_time == 0){
       grind_debounce_time = millis();
@@ -131,79 +144,61 @@ void proc_idle_demand() {
     if (millis() - grind_debounce_time > DEBOUNCE_DELAY) {
       //over debounce threshold so change state
       state = STATE_GRINDING;
+      update_display();
     }
   }
   //for state change while in idle
-  attachInterrupt(EVENT_INT, state_change, RISING);      
+  //attachInterrupt(EVENT_INT, mode_change, RISING);      
 }
 
 void stop_grinding(){
-  state = STATE_DONE;
-  
-}
-
-void timer_grinding(){  
-  cool_start = 0;
-  detachInterrupt(GRIND_BUTTON);
-    if (grind_start == 0){
-    grind_start = millis();
-    lcd.clear();
-  }
-  now = millis();
-  grind_time = now - grind_start;
-  attachInterrupt(EVENT_INT, stop_grinding, RISING);
-  //grinding ends if grind time reached or event button is pressed to cancel
-  if (grind_time > grind_time_preset){
-    //handle a cancellation push of button with interrupt on event button
-    state = STATE_DONE;
-  }else{
-    //do nothing
-    #ifdef debug
-      Serial.print("Grind time = ");
-      Serial.print(grind_time);
-      Serial.println("s");
-    #endif
-  }
+  lcd.clear();
+  update_display();
+  goto_idle();
 }
 
 void proc_grinding(){
   #ifdef debug
     Serial.println(state);
+    Serial.println("Demand grinding!!!");
   #endif
-  if (prev_state == STATE_IDLE_TIMER) {
-     timer_grinding();
-  }
-  //grind on demand so while button is pushed we will grind
-  if (prev_state == STATE_IDLE_DEMAND) {
-    if (digitalRead(GRIND_BUTTON) == LOW){
+  update_display();
+  if (mode == MODE_TIMER) {
+     #ifdef debug
+        Serial.print("Grind time = ");
+        Serial.print(grind_time);
+        Serial.println("s");
+    #endif
+    if (grind_start == 0){
+      grind_start = millis();
+    }
+    now = millis();
+    grind_time = now - grind_start;   //grinding ends if grind time reached or event button is pressed to cancel
+    if (grind_time > grind_time_preset){
+      //handle a cancellation push of button with interrupt on event button
+      lcd.clear();
+      update_display();
       state = STATE_DONE;
-    }else{
-      #ifdef debug
-      Serial.println("Demand grinding!!!");
-      #endif
+    }
+  } else if (mode == MODE_DEMAND) {   //grind on demand so while button is pushed we will grind
+    if (digitalRead(GRIND_BUTTON) == LOW){
+      lcd.clear();
+      update_display();
+      goto_idle();
     }
   }
 }
 
 void proc_done(){
     grind_start = 0;
-    detachInterrupt(EVENT_BUTTON);
-    lcd.clear();
-    lcd.setCursor(0,0);
-    lcd.write("Done.");
-    lcd.setCursor(0,1);
-    lcd.write("cool down..");
-    //delay doesn't work here as relays stay high so need to do an async time test
     if (digitalRead(GRIND_BUTTON) == LOW) {
-       //do the relay stuff
        manage_outputs();
-       if (prev_state == STATE_IDLE_TIMER) {
+       if (mode == MODE_TIMER) {
          delay(COOL_DOWN);
        }
        lcd.clear();
-       state = prev_state;
-    }else {
-      state = STATE_DONE;
+       delay(1000);
+       goto_idle();
     }
 }
 
@@ -216,7 +211,7 @@ void manage_outputs(){
     if (status_led_brightness <= 0 || status_led_brightness >= 255) {
       fade_rate = -fade_rate;
     }
-    delay(1); // delay to see fade
+    //delay(1); // delay to see fade
   }else{
     digitalWrite(RELAY_PIN_L, LOW);
     digitalWrite(RELAY_PIN_N, LOW);
@@ -224,70 +219,63 @@ void manage_outputs(){
   }
 }
 
+
 void update_display(){
-  if (state == STATE_GRINDING){
-    lcd.setCursor(0,0);
-    lcd.write("grinding...");
-    //int percent = 100*grind_time/grind_time_preset;
-    int bar_frac = 16*grind_time/grind_time_preset;
-    //sprintf(buf, "%3d %", percent);
-    switch (prev_state) {
-      case STATE_IDLE_TIMER:
+  int bar_frac;
+  switch (state) { 
+    case STATE_GRINDING:
+      lcd.setCursor(0,0);
+      lcd.write("grinding...");
+      bar_frac = 16*grind_time/grind_time_preset;
+      if (mode==MODE_TIMER) {
         lcd.write(buf);
         lcd.setCursor(0,1);
         for (int x = 0; x < 16; x++) {
           if (x < bar_frac) {      lcd.write(3);}
           else {lcd.write(20);}
         }
-        break;
-      case STATE_IDLE_DEMAND:
-         lcd.setCursor(0,1);
-         lcd.write("              ");
-         break;
+      }
+      break;
+    case STATE_IDLE:
+      lcd.setCursor(0,0);
+      if (mode == MODE_DEMAND){
+        lcd.write("Demand");
+      }else{
+        lcd.write("Timer  ");
+      }
+      lcd.setCursor(4,1);
+      sprintf(buf, "%5d ms", grind_time_preset);
+      lcd.write(buf);
+      break;
+    case STATE_DONE:
+      lcd.setCursor(0,0);
+      lcd.write("Done.");
+      lcd.setCursor(0,1);
+      lcd.write("cool down..");
+      break;
     }
-  }else{
-    val = analogRead(POTI_PIN);
-    grind_time_preset =  int(float(val)/(NUM_ADC_STATES-1) * (MAX_GRIND_TIME-MIN_GRIND_TIME)) + MIN_GRIND_TIME;
-    //lcd.clear();
-    lcd.setCursor(0,0);
-    if (prev_state == STATE_IDLE_DEMAND){
-      lcd.write("Demand");
-    }else{
-      lcd.write("Timer  ");
-    }
-    lcd.setCursor(4,1);
-    sprintf(buf, "%5d ms", grind_time_preset);
-    lcd.write(buf);
-  }
 }
 
 
 void loop() {
-  switch (state) {
-  case STATE_IDLE_TIMER:
-    proc_idle_timer();
-    break;
-  case STATE_IDLE_DEMAND:
-    proc_idle_demand();
-    break;
-  case STATE_GRINDING:
-    proc_grinding();
-    break;
-  case STATE_DONE:
-    proc_done();
-    break;
-  }
   manage_outputs();
-  update_display();
- #ifdef debug
-  Serial.print("State is ");
-  Serial.print(state);
-  Serial.print("   Cool time = ");
-  Serial.print(cool_time);
-  Serial.print("     Preivious state is: ");
-  Serial.println(prev_state);
- #endif 
-  
+  switch (state) {
+    case STATE_IDLE:
+      proc_idle();
+      break;
+    case STATE_GRINDING:
+      proc_grinding();
+      break;
+    case STATE_DONE:
+      proc_done();
+      break;
+  }
+  #ifdef debug
+    Serial.print("State is ");
+    Serial.print(state);
+    Serial.print("     Mode is: ");
+    Serial.println(mode);
+   #endif
 }
 
 
