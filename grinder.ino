@@ -33,6 +33,7 @@ const int GRIND_BUTTON = 2;
 const int EVENT_BUTTON = 3; //ned interrupt on this button too
 const int EVENT_INT = 1; //digital pin 3
 const int POTI_PIN = 3;    // select the input pin for the potentiometer analogue pin 3
+const int STATUS_LED_PIN = 9; // pin9 is a PWM pin and allows for analogWrite.
 //switching phase and neutral for safety
 const int RELAY_PIN_L = 11;
 const int RELAY_PIN_N = 12;
@@ -45,7 +46,9 @@ unsigned long cool_start = 0;
 unsigned long cool_time = 0;
 unsigned long grind_time;
 unsigned long now;
-unsigned long GRIND_DEBOUNCE_TIME = 0;
+unsigned long grind_debounce_time = 0;
+int status_led_brightness = 0;
+int fade_rate = 1;
 int prev_state = 0; //place holder for state to exit state_doe to
 
 int val = 0;
@@ -60,10 +63,11 @@ void grinding(){
 }
 
 void setup() {
-  // initialize the button pin as a input:
+  // initialize the button pin as an input
   pinMode(GRIND_BUTTON, INPUT);
   digitalWrite(GRIND_BUTTON, LOW);
- 
+  // initialize the button LED as an output
+  pinMode(STATUS_LED_PIN, OUTPUT);
   // initialize the RELAY as an output
   pinMode(RELAY_PIN_N, OUTPUT);
   digitalWrite(RELAY_PIN_N, LOW);
@@ -121,10 +125,10 @@ void proc_idle_demand() {
   if (digitalRead(GRIND_BUTTON) == HIGH) { 
   
     //do debounce stuff
-    if (GRIND_DEBOUNCE_TIME == 0){
-      GRIND_DEBOUNCE_TIME = millis();
+    if (grind_debounce_time == 0){
+      grind_debounce_time = millis();
     }
-    if (millis() - GRIND_DEBOUNCE_TIME > DEBOUNCE_DELAY) {
+    if (millis() - grind_debounce_time > DEBOUNCE_DELAY) {
       //over debounce threshold so change state
       state = STATE_GRINDING;
     }
@@ -207,9 +211,16 @@ void manage_outputs(){
   if (state == STATE_GRINDING){
     digitalWrite(RELAY_PIN_L, HIGH);
     digitalWrite(RELAY_PIN_N, HIGH);
+    analogWrite(STATUS_LED_PIN, status_led_brightness);
+    status_led_brightness += fade_rate;    
+    if (status_led_brightness <= 0 || status_led_brightness >= 255) {
+      fade_rate = -fade_rate;
+    }
+    delay(1); // delay to see fade
   }else{
     digitalWrite(RELAY_PIN_L, LOW);
     digitalWrite(RELAY_PIN_N, LOW);
+    digitalWrite(STATUS_LED_PIN, HIGH);
   }
 }
 
