@@ -85,7 +85,7 @@ void setup() {
   lcd.backlight(); // finish with backlight on  
   lcd.clear();
   //attach interrupt for grind button
-  attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
+  //attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
   attachInterrupt(EVENT_INT, mode_change, RISING);
 }
 
@@ -101,8 +101,8 @@ void mode_change() {
 }
 
 void grinding(){
-  detachInterrupt(GRIND_INT);
-  grind_interrupt = 0;
+//  detachInterrupt(GRIND_INT);
+//  grind_interrupt = 0;
   detachInterrupt(EVENT_INT);
   mode_interrupt = 0;
   attachInterrupt(EVENT_INT, stop_grinding, RISING);
@@ -155,10 +155,10 @@ void proc_idle() {
 //  }
   //sanity chekc for failing code
   if (mode == MODE_TIMER) {
-    if (!grind_interrupt) {
-      attachInterrupt(GRIND_INT, grinding, RISING);
-      grind_interrupt = 1;
-    }
+//    if (!grind_interrupt) {
+//      attachInterrupt(GRIND_INT, grinding, RISING);
+//      grind_interrupt = 1;
+//    }
     //CLEAR EVENT ITERUPT FIRST
     if (event_interrupt) {
       detachInterrupt(EVENT_INT);
@@ -166,16 +166,27 @@ void proc_idle() {
       attachInterrupt(EVENT_INT, mode_change, RISING);  
       mode_interrupt = 1; 
     }
+    if (digitalRead(GRIND_BUTTON) == HIGH) { 
+      //do debounce stuff
+      if (grind_debounce_time == 0){
+        grind_debounce_time = millis();
+      }
+      if (millis() - grind_debounce_time > DEBOUNCE_DELAY) {
+        //over debounce threshold so change state
+        state = STATE_GRINDING;
+        update_display();
+      }
+    }
   }
   
   //if not in timer mode need to grind on button push
   //Interrupt detached in mode change
   if (mode == MODE_DEMAND) {
     //sanity check for failing code
-    if (grind_interrupt) {
-      detachInterrupt(GRIND_INT);
-      grind_interrupt = 0;
-    }
+//    if (grind_interrupt) {
+//      detachInterrupt(GRIND_INT);
+//      grind_interrupt = 0;
+//    }
     if (event_interrupt) {
       detachInterrupt(EVENT_INT);
       event_interrupt = 0;
@@ -252,9 +263,9 @@ void proc_done(){
      if (mode == MODE_TIMER) {
        delay(COOL_DOWN);
        detachInterrupt(EVENT_INT);
-       event_interrupt = 0;
-       attachInterrupt(GRIND_INT, grinding, RISING);
-       grind_interrupt = 1;
+//       event_interrupt = 0;
+//       attachInterrupt(GRIND_INT, grinding, RISING);
+//       grind_interrupt = 1;
        attachInterrupt(EVENT_INT, mode_change, RISING);
        mode_interrupt = 1;
        state = STATE_IDLE;
