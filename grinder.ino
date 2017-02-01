@@ -84,9 +84,6 @@ void setup() {
   lcd.begin(16,2);
   lcd.backlight(); // finish with backlight on  
   lcd.clear();
-  //attach interrupt for grind button
-  //attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
-  //attachInterrupt(EVENT_INT, mode_change, RISING);
 }
 
 void mode_change() {
@@ -101,19 +98,10 @@ void mode_change() {
 }
 
 void grinding(){
-//  detachInterrupt(GRIND_INT);
-//  grind_interrupt = 0;
-  //detachInterrupt(EVENT_INT);
-  //mode_interrupt = 0;
   attachInterrupt(EVENT_INT, stop_grinding, RISING);
   event_interrupt = 1;
   state = STATE_GRINDING;
-  //delay(50);
 }
-
-//  attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
-//  attachInterrupt(EVENT_INT, mode_change, RISING);
-//  attachInterrupt(EVENT_INT, stop_grinding, RISING);
 
 long int new_val;
 
@@ -139,19 +127,7 @@ void proc_idle() {
       update_display();
     }
   }
-  //sanity chekc for failing code
   if (mode == MODE_TIMER) {
-//    if (!grind_interrupt) {
-//      attachInterrupt(GRIND_INT, grinding, RISING);
-//      grind_interrupt = 1;
-//    }
-    //CLEAR EVENT ITERUPT FIRST
-//    if (event_interrupt) {
-//      detachInterrupt(EVENT_INT);
-//      event_interrupt = 0;
-//      attachInterrupt(EVENT_INT, mode_change, RISING);  
-//      mode_interrupt = 1; 
-//    }
     if (digitalRead(GRIND_BUTTON) == HIGH) { 
       //do debounce stuff
       if (grind_debounce_time == 0){
@@ -164,15 +140,9 @@ void proc_idle() {
       }
     }
   }
-  
   //if not in timer mode need to grind on button push
-  //Interrupt detached in mode change
   if (mode == MODE_DEMAND) {
-    //sanity check for failing code
-//    if (grind_interrupt) {
-//      detachInterrupt(GRIND_INT);
-//      grind_interrupt = 0;
-//    }
+    //sanity check
     if (event_interrupt) {
       detachInterrupt(EVENT_INT);
       event_interrupt = 0;
@@ -189,16 +159,6 @@ void proc_idle() {
       }
     }
   }
-  //for state change while in idle
-//  if (!mode_interrupt) {
-//    //get rid of  grinding event interrupt if it is there
-//    if (event_interrupt) {
-//      detachInterrupt(EVENT_INT);
-//      event_interrupt = 0;
-//    }
-//    attachInterrupt(EVENT_INT, mode_change, RISING);  
-//    mode_interrupt = 1;  
-//  }
 }
 
 void stop_grinding(){
@@ -221,6 +181,12 @@ void proc_grinding(){
         Serial.print(grind_time);
         Serial.println("s");
     #endif
+    //sanity check on interrupts
+    if (!event_interrupt) {
+      attachInterrupt(EVENT_INT, stop_grinding, RISING);
+      event_interrupt = 1;
+    }
+  
     if (grind_start == 0){
       grind_start = millis();
     }
@@ -250,10 +216,6 @@ void proc_done(){
        delay(COOL_DOWN);
        detachInterrupt(EVENT_INT);
        event_interrupt = 0;
-//       attachInterrupt(GRIND_INT, grinding, RISING);
-//       grind_interrupt = 1;
-//       attachInterrupt(EVENT_INT, mode_change, RISING);
-//       mode_interrupt = 1;
        state = STATE_IDLE;
      }
      if (mode == MODE_DEMAND) {
@@ -337,8 +299,6 @@ void loop() {
   #ifdef debug
     Serial.print("State is ");
     Serial.print(state);
-//    Serial.print("   mode change int is: ");
-//    Serial.print(mode_interrupt);
     Serial.print("     Mode is: ");
     Serial.println(mode);
    #endif
