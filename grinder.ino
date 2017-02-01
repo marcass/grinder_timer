@@ -45,7 +45,8 @@ const int RELAY_PIN_N = 12;
 const int DEBOUNCE_DELAY = 50;    // the debounce time; increase if the output flickers
 
 // Variables will change:
-unsigned long grind_start = 0;
+//read this from ram as pushing event button causes isr to change it
+volatile unsigned long grind_start = 0;
 unsigned long grind_time = 0;
 unsigned long now;
 unsigned long grind_debounce_time = 0;
@@ -167,6 +168,8 @@ void stop_grinding(){
   state = STATE_DONE;
   detachInterrupt(EVENT_INT);
   event_interrupt = 0;
+  //reading value from wrong register on next timer grinding so make volitile and update here on event button push
+  grind_start = 0;
 }
 
 void proc_grinding(){
