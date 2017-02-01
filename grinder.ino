@@ -23,7 +23,7 @@ const int MODE_TIMER = 0;
 const int MODE_DEMAND = 1;
 
 volatile int state = STATE_IDLE;
-volatile int mode = MODE_TIMER;
+int mode = MODE_TIMER;
 
 // this constant won't change:
 
@@ -53,9 +53,9 @@ int status_led_brightness = 0;
 int fade_rate = 10;
 
 //interrupt hell! setting flags to keep them short and update them in idle if not set
-volatile bool grind_interrupt = 1;
+//volatile bool grind_interrupt = 1;
 volatile bool event_interrupt = 0;
-volatile bool mode_interrupt = 1; //on event button but names are confusing
+//volatile bool mode_interrupt = 1; //on event button but names are confusing
 
 int val = 0;
 char buf[16];
@@ -86,25 +86,25 @@ void setup() {
   lcd.clear();
   //attach interrupt for grind button
   //attachInterrupt(GRIND_INT, grinding, RISING); //check to see if wired falling or rising
-  attachInterrupt(EVENT_INT, mode_change, RISING);
+  //attachInterrupt(EVENT_INT, mode_change, RISING);
 }
 
 void mode_change() {
   if (mode == MODE_TIMER) {
-    
     mode = MODE_DEMAND;
+    delay(500);
   }
   else if (mode == MODE_DEMAND) {
-    state = STATE_DONE;
     mode = MODE_TIMER;
+    delay(500);
   }
 }
 
 void grinding(){
 //  detachInterrupt(GRIND_INT);
 //  grind_interrupt = 0;
-  detachInterrupt(EVENT_INT);
-  mode_interrupt = 0;
+  //detachInterrupt(EVENT_INT);
+  //mode_interrupt = 0;
   attachInterrupt(EVENT_INT, stop_grinding, RISING);
   event_interrupt = 1;
   state = STATE_GRINDING;
@@ -127,32 +127,18 @@ void proc_idle() {
   }
 
   //interupts not working for mode so read value of button
-//  if (digitalRead(EVENT_BUTTON) == HIGH) { 
-//    //do debounce stuff
-//    if (grind_debounce_time == 0){
-//      grind_debounce_time = millis();
-//    }
-//    if (millis() - grind_debounce_time > DEBOUNCE_DELAY) {
-//      //over debounce threshold so change mode
-//      if (mode == MODE_TIMER) {
-//        detachInterrupt(GRIND_INT);
-//        grind_interrupt = 0;
-//        delay(1000);
-//        mode = MODE_DEMAND;
-//        //delay(1000);
-//        grind_debounce_time = 0;
-//      }
-//      if (mode == MODE_DEMAND) {
-//        attachInterrupt(GRIND_INT, grinding, RISING);
-//        grind_interrupt = 1;
-//        delay(1000);
-//        mode = MODE_TIMER;
-//        delay(1000);
-//        grind_debounce_time = 0;
-//      }
-//       update_display();
-//    }
-//  }
+  if (digitalRead(EVENT_BUTTON) == HIGH) { 
+    //do debounce stuff
+    if (grind_debounce_time == 0){
+      grind_debounce_time = millis();
+    }
+    if (millis() - grind_debounce_time > DEBOUNCE_DELAY) {
+      //over debounce threshold so change mode
+      grind_debounce_time = 0;
+      mode_change();
+      update_display();
+    }
+  }
   //sanity chekc for failing code
   if (mode == MODE_TIMER) {
 //    if (!grind_interrupt) {
@@ -160,12 +146,12 @@ void proc_idle() {
 //      grind_interrupt = 1;
 //    }
     //CLEAR EVENT ITERUPT FIRST
-    if (event_interrupt) {
-      detachInterrupt(EVENT_INT);
-      event_interrupt = 0;
-      attachInterrupt(EVENT_INT, mode_change, RISING);  
-      mode_interrupt = 1; 
-    }
+//    if (event_interrupt) {
+//      detachInterrupt(EVENT_INT);
+//      event_interrupt = 0;
+//      attachInterrupt(EVENT_INT, mode_change, RISING);  
+//      mode_interrupt = 1; 
+//    }
     if (digitalRead(GRIND_BUTTON) == HIGH) { 
       //do debounce stuff
       if (grind_debounce_time == 0){
@@ -204,15 +190,15 @@ void proc_idle() {
     }
   }
   //for state change while in idle
-  if (!mode_interrupt) {
-    //get rid of  grinding event interrupt if it is there
-    if (event_interrupt) {
-      detachInterrupt(EVENT_INT);
-      event_interrupt = 0;
-    }
-    attachInterrupt(EVENT_INT, mode_change, RISING);  
-    mode_interrupt = 1;  
-  }
+//  if (!mode_interrupt) {
+//    //get rid of  grinding event interrupt if it is there
+//    if (event_interrupt) {
+//      detachInterrupt(EVENT_INT);
+//      event_interrupt = 0;
+//    }
+//    attachInterrupt(EVENT_INT, mode_change, RISING);  
+//    mode_interrupt = 1;  
+//  }
 }
 
 void stop_grinding(){
@@ -263,11 +249,11 @@ void proc_done(){
      if (mode == MODE_TIMER) {
        delay(COOL_DOWN);
        detachInterrupt(EVENT_INT);
-//       event_interrupt = 0;
+       event_interrupt = 0;
 //       attachInterrupt(GRIND_INT, grinding, RISING);
 //       grind_interrupt = 1;
-       attachInterrupt(EVENT_INT, mode_change, RISING);
-       mode_interrupt = 1;
+//       attachInterrupt(EVENT_INT, mode_change, RISING);
+//       mode_interrupt = 1;
        state = STATE_IDLE;
      }
      if (mode == MODE_DEMAND) {
@@ -351,8 +337,8 @@ void loop() {
   #ifdef debug
     Serial.print("State is ");
     Serial.print(state);
-    Serial.print("   mode change int is: ");
-    Serial.print(mode_interrupt);
+//    Serial.print("   mode change int is: ");
+//    Serial.print(mode_interrupt);
     Serial.print("     Mode is: ");
     Serial.println(mode);
    #endif
