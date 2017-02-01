@@ -248,9 +248,9 @@ void proc_grinding(){
     }
   } else if (mode == MODE_DEMAND) {   //grind on demand so while button is pushed we will grind
     if (digitalRead(GRIND_BUTTON) == LOW){
+      state = STATE_IDLE;
       lcd.clear();
       update_display();
-      state = STATE_IDLE;
     }
   }
 }
