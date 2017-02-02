@@ -45,6 +45,7 @@ const int DEBOUNCE_DELAY = 50;
 unsigned long grind_start = 0;
 unsigned long grind_time = 0;
 unsigned long grind_debounce_time = 0;
+unsigned long mode_debounce_time = 0;
 int status_led_brightness = 0;
 int fade_rate = 10;
 bool event_interrupt = 0;
@@ -110,12 +111,12 @@ void proc_idle() {
   //interupts not working for mode so read value of button
   if (digitalRead(EVENT_BUTTON) == HIGH) { 
     //do debounce stuff
-    if (grind_debounce_time == 0){
-      grind_debounce_time = millis();
+    if (mode_debounce_time == 0){
+      mode_debounce_time = millis();
     }
     if (millis() - grind_debounce_time > DEBOUNCE_DELAY) {
       //over debounce threshold so change mode
-      grind_debounce_time = 0;
+      mode_debounce_time = 0;
       mode_change();
       update_display();
     }
