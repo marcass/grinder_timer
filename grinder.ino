@@ -48,7 +48,7 @@ const int DEBOUNCE_DELAY = 50;    // the debounce time; increase if the output f
 //read this from ram as pushing event button causes isr to change it
 volatile unsigned long grind_start = 0;
 unsigned long grind_time = 0;
-unsigned long now;
+//unsigned long now;
 unsigned long grind_debounce_time = 0;
 int status_led_brightness = 0;
 int fade_rate = 10;
@@ -57,6 +57,7 @@ int fade_rate = 10;
 //volatile bool grind_interrupt = 1;
 volatile bool event_interrupt = 0;
 //volatile bool mode_interrupt = 1; //on event button but names are confusing
+bool timer_starts;
 
 int val = 0;
 char buf[16];
@@ -136,6 +137,7 @@ void proc_idle() {
       }
       if (millis() - grind_debounce_time > DEBOUNCE_DELAY) {
         //over debounce threshold so change state
+        timer_starts = true;
         state = STATE_GRINDING;
         update_display();
       }
@@ -169,7 +171,8 @@ void stop_grinding(){
   detachInterrupt(EVENT_INT);
   event_interrupt = 0;
   //reading value from wrong register on next timer grinding so make volitile and update here on event button push
-  grind_start = 0;
+  //grind_start = 0;
+  //grind_time = 0;
 }
 
 void proc_grinding(){
@@ -179,22 +182,23 @@ void proc_grinding(){
   #endif
   update_display();
   if (mode == MODE_TIMER) {
-     #ifdef debug
-        Serial.print("Grind time = ");
-        Serial.print(grind_time);
-        Serial.println("s");
-    #endif
+//     #ifdef debug
+//        Serial.print("Grind time = ");
+//        Serial.print(grind_time);
+//        Serial.println("s");
+//    #endif
     //sanity check on interrupts
     if (!event_interrupt) {
       attachInterrupt(EVENT_INT, stop_grinding, RISING);
       event_interrupt = 1;
     }
-  
-    if (grind_start == 0){
+    //set flag for timer start
+    if (timer_starts) {
       grind_start = millis();
+      timer_starts = false;
     }
-    now = millis();
-    grind_time = now - grind_start;   //grinding ends if grind time reached or event button is pressed to cancel
+    //now = millis();
+    grind_time = millis() - grind_start;   //grinding ends if grind time reached or event button is pressed to cancel
     if (grind_time > grind_time_preset){
       //handle a cancellation push of button with interrupt on event button
       lcd.clear();
