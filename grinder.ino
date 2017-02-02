@@ -31,8 +31,6 @@ const int MIN_GRIND_TIME = 5000;
 const int MAX_GRIND_TIME = 15000;
 const int NUM_ADC_STATES = 1024;
 const int COOL_DOWN = 3000; //number of seconds to cool down after grinding
-
-const int GRIND_INT = 0;  // 0 = digital pin 2
 const int GRIND_BUTTON = 2;
 const int EVENT_BUTTON = 3; //ned interrupt on this button too
 const int EVENT_INT = 1; //digital pin 3
@@ -41,22 +39,15 @@ const int STATUS_LED_PIN = 9; // pin9 is a PWM pin and allows for analogWrite.
 //switching phase and neutral for safety
 const int RELAY_PIN_L = 11;
 const int RELAY_PIN_N = 12;
-//button for changing grind mode (timer or on push) or stopping a timed grind
-const int DEBOUNCE_DELAY = 50;    // the debounce time; increase if the output flickers
+const int DEBOUNCE_DELAY = 50;
 
 // Variables will change:
-//read this from ram as pushing event button causes isr to change it
-volatile unsigned long grind_start = 0;
-volatile unsigned long grind_time = 0;
-//unsigned long now;
+unsigned long grind_start = 0;
+unsigned long grind_time = 0;
 unsigned long grind_debounce_time = 0;
 int status_led_brightness = 0;
 int fade_rate = 10;
-
-//interrupt hell! setting flags to keep them short and update them in idle if not set
-//volatile bool grind_interrupt = 1;
-volatile bool event_interrupt = 0;
-//volatile bool mode_interrupt = 1; //on event button but names are confusing
+bool event_interrupt = 0;
 bool timer_starts;
 
 int val = 0;
@@ -137,6 +128,8 @@ void proc_idle() {
       }
       if (millis() - grind_debounce_time > DEBOUNCE_DELAY) {
         //over debounce threshold so change state
+        grind_start = 0;
+        grind_time = 0;
         timer_starts = true;
         state = STATE_GRINDING;
         update_display();
@@ -165,14 +158,7 @@ void proc_idle() {
 }
 
 void stop_grinding(){
-  //lcd.clear();
-  //update_display();
   state = STATE_DONE;
-//  detachInterrupt(EVENT_INT);
-//  event_interrupt = 0;
-  //reading value from wrong register on next timer grinding so make volitile and update here on event button push
-//  grind_start = 0;
-//  grind_time = 0;
 }
 
 void proc_grinding(){
@@ -224,8 +210,8 @@ void proc_done(){
        delay(COOL_DOWN);
        detachInterrupt(EVENT_INT);
        event_interrupt = 0;
-       grind_start = 0;
-       grind_time = 0;
+//       grind_start = 0;
+//       grind_time = 0;
        state = STATE_IDLE;
      }
      if (mode == MODE_DEMAND) {
