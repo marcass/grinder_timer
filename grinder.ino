@@ -47,7 +47,7 @@ const int DEBOUNCE_DELAY = 50;    // the debounce time; increase if the output f
 // Variables will change:
 //read this from ram as pushing event button causes isr to change it
 volatile unsigned long grind_start = 0;
-unsigned long grind_time = 0;
+volatile unsigned long grind_time = 0;
 //unsigned long now;
 unsigned long grind_debounce_time = 0;
 int status_led_brightness = 0;
@@ -171,8 +171,8 @@ void stop_grinding(){
   detachInterrupt(EVENT_INT);
   event_interrupt = 0;
   //reading value from wrong register on next timer grinding so make volitile and update here on event button push
-  //grind_start = 0;
-  //grind_time = 0;
+  grind_start = 0;
+  grind_time = 0;
 }
 
 void proc_grinding(){
@@ -217,6 +217,7 @@ void proc_grinding(){
 void proc_done(){
   update_display();
   grind_start = 0;
+  grind_time = 0;
   if (digitalRead(GRIND_BUTTON) == LOW) {
      manage_outputs();
      if (mode == MODE_TIMER) {
