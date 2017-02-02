@@ -196,6 +196,8 @@ void proc_grinding(){
     if (timer_starts) {
       grind_start = millis();
       timer_starts = false;
+      //arbitrary low value for false stops
+      grind_time = 1;
     }
     //now = millis();
     grind_time = millis() - grind_start;   //grinding ends if grind time reached or event button is pressed to cancel
@@ -216,14 +218,14 @@ void proc_grinding(){
 
 void proc_done(){
   update_display();
-  grind_start = 0;
-  grind_time = 0;
   if (digitalRead(GRIND_BUTTON) == LOW) {
      manage_outputs();
      if (mode == MODE_TIMER) {
        delay(COOL_DOWN);
        detachInterrupt(EVENT_INT);
        event_interrupt = 0;
+       grind_start = 0;
+       grind_time = 0;
        state = STATE_IDLE;
      }
      if (mode == MODE_DEMAND) {
