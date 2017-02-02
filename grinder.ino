@@ -168,11 +168,11 @@ void stop_grinding(){
   //lcd.clear();
   //update_display();
   state = STATE_DONE;
-  detachInterrupt(EVENT_INT);
-  event_interrupt = 0;
+//  detachInterrupt(EVENT_INT);
+//  event_interrupt = 0;
   //reading value from wrong register on next timer grinding so make volitile and update here on event button push
-  grind_start = 0;
-  grind_time = 0;
+//  grind_start = 0;
+//  grind_time = 0;
 }
 
 void proc_grinding(){
