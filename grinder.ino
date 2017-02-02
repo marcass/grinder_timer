@@ -302,6 +302,8 @@ void loop() {
   #ifdef debug
     Serial.print("State is ");
     Serial.print(state);
+    Serial.print("    Grind start time is: ");
+    Serial.print(grind_start);
     Serial.print("     Mode is: ");
     Serial.println(mode);
    #endif
