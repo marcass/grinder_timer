@@ -169,11 +169,11 @@ void proc_grinding(){
   #endif
   update_display();
   if (mode == MODE_TIMER) {
-//     #ifdef debug
-//        Serial.print("Grind time = ");
-//        Serial.print(grind_time);
-//        Serial.println("s");
-//    #endif
+     #ifdef debug
+        Serial.print("Grind time = ");
+        Serial.print(grind_time);
+        Serial.println("s");
+    #endif
     //sanity check on interrupts
     if (!event_interrupt) {
       attachInterrupt(EVENT_INT, stop_grinding, RISING);
@@ -298,6 +298,8 @@ void loop() {
     Serial.print(state);
     Serial.print("    Grind time is: ");
     Serial.print(grind_time);
+    Serial.print("    Grind start is: ");
+    Serial.print(grind_start);
     Serial.print("     Mode is: ");
     Serial.println(mode);
    #endif
