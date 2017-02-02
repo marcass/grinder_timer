@@ -188,13 +188,21 @@ void proc_grinding(){
     }
     //now = millis();
     grind_time = millis() - grind_start;   //grinding ends if grind time reached or event button is pressed to cancel
+//    if (grind_time == 0) {
+//      //something went wrong so do nothing and loop again
+//      #ifdef debug
+//        Serial.println("Variable problem");
+//      #endif
+//    }
+    //else 
     if (grind_time > grind_time_preset){
       //handle a cancellation push of button with interrupt on event button
       lcd.clear();
       update_display();
       state = STATE_DONE;
     }
-  } else if (mode == MODE_DEMAND) {   //grind on demand so while button is pushed we will grind
+  }
+  if (mode == MODE_DEMAND) {   //grind on demand so while button is pushed we will grind
     if (digitalRead(GRIND_BUTTON) == LOW){
       state = STATE_IDLE;
       lcd.clear();
