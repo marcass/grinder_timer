@@ -49,7 +49,7 @@ int status_led_brightness = 0;
 int fade_rate = 10;
 bool event_interrupt = 0;
 bool timer_starts;
-volatile bool interrupt_triggered;
+volatile bool interrupt_triggered = false;
 
 int val = 0;
 char buf[16];
@@ -123,10 +123,10 @@ void proc_idle() {
   }
   if (mode == MODE_TIMER) {
     //sanity check on interrupts
-    if (event_interrupt) {
-      detachInterrupt(EVENT_INT);
-      event_interrupt = 0;
-    }
+//    if (event_interrupt) {
+//      detachInterrupt(EVENT_INT);
+//      event_interrupt = 0;
+//    }
     if (digitalRead(GRIND_BUTTON) == HIGH) { 
       //do debounce stuff
       if (grind_debounce_time == 0){
@@ -145,10 +145,10 @@ void proc_idle() {
   //if not in timer mode need to grind on button push
   if (mode == MODE_DEMAND) {
     //sanity check
-    if (event_interrupt) {
-      detachInterrupt(EVENT_INT);
-      event_interrupt = 0;
-    }
+//    if (event_interrupt) {
+//      detachInterrupt(EVENT_INT);
+//      event_interrupt = 0;
+//    }
     if (digitalRead(GRIND_BUTTON) == HIGH) { 
       //do debounce stuff
       if (grind_debounce_time == 0){
@@ -181,10 +181,10 @@ void proc_grinding(){
 //        Serial.println("s");
 //    #endif
     //sanity check on interrupts
-    if (!event_interrupt) {
+//    if (!event_interrupt) {
       attachInterrupt(EVENT_INT, stop_grinding, RISING);
-      event_interrupt = 1;
-    }
+//      event_interrupt = 1;
+//    }
     //set flag for timer start
     if (timer_starts) {
       grind_start = millis();
