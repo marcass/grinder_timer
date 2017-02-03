@@ -7,11 +7,10 @@ LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I
 #define debug
 
 /* FINITE STATE MACHINE STATES
- *  STATE_IDLE_TIMER -> STATE_GRINDING || STATE_IDLE_DEMAND
- *  STATE_IDLE_DEMAND -> STATE_GRINDING || STATE_IDLE_TIMER
- *  STATE_DONE -> STATE_IDLE_DEMAND || STATE_IDLE_TIME
- *  STATE GRINDING -> STATE_DONE 
- *  
+ *  STATE_IDLE -> STATE_GRINDING
+ *  STATE_DONE -> STATE_IDLE
+ *  STATE GRINDING -> STATE_DONE (mode timer)
+ *  STATE GRINDING -> STATE_IDLE (mode demand)
  *  
  */
  
@@ -50,6 +49,7 @@ int status_led_brightness = 0;
 int fade_rate = 10;
 bool event_interrupt = 0;
 bool timer_starts;
+volatile bool interrupt_triggered;
 
 int val = 0;
 char buf[16];
@@ -164,6 +164,7 @@ void proc_idle() {
 }
 
 void stop_grinding(){
+  interrupt_triggered = true;
   state = STATE_DONE;
 }
 
@@ -219,6 +220,12 @@ void proc_grinding(){
 }
 
 void proc_done(){
+  if (interrupt_triggered) {
+    #ifdef debug
+      Serial.println("killed by interrupt");
+    #endif
+    interrupt_triggered = false;
+  }
   update_display();
   if (digitalRead(GRIND_BUTTON) == LOW) {
      manage_outputs();
