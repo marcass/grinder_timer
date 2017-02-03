@@ -91,11 +91,11 @@ void mode_change() {
   }
 }
 
-void grinding(){
-  attachInterrupt(EVENT_INT, stop_grinding, RISING);
-  event_interrupt = 1;
-  state = STATE_GRINDING;
-}
+//void grinding(){
+//  attachInterrupt(EVENT_INT, stop_grinding, RISING);
+//  event_interrupt = 1;
+//  state = STATE_GRINDING;
+//}
 
 long int new_val;
 
@@ -122,6 +122,11 @@ void proc_idle() {
     }
   }
   if (mode == MODE_TIMER) {
+    //sanity check on interrupts
+    if (event_interrupt) {
+      detachInterrupt(EVENT_INT);
+      event_interrupt = 0;
+    }
     if (digitalRead(GRIND_BUTTON) == HIGH) { 
       //do debounce stuff
       if (grind_debounce_time == 0){
@@ -163,17 +168,17 @@ void stop_grinding(){
 }
 
 void proc_grinding(){
-  #ifdef debug
-    Serial.println(state);
-    Serial.println("Grinding!!!");
-  #endif
+//  #ifdef debug
+//    Serial.println(state);
+//    Serial.println("Grinding!!!");
+//  #endif
   update_display();
   if (mode == MODE_TIMER) {
-     #ifdef debug
-        Serial.print("Grind time = ");
-        Serial.print(grind_time);
-        Serial.println("s");
-    #endif
+//     #ifdef debug
+//        Serial.print("Grind time = ");
+//        Serial.print(grind_time);
+//        Serial.println("s");
+//    #endif
     //sanity check on interrupts
     if (!event_interrupt) {
       attachInterrupt(EVENT_INT, stop_grinding, RISING);
