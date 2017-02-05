@@ -139,6 +139,7 @@ void proc_idle() {
         timer_starts = true;
         state = STATE_GRINDING;
         update_display();
+        grind_debounce_time = 0;
       }
     }
   }
@@ -158,6 +159,7 @@ void proc_idle() {
         //over debounce threshold so change state
         state = STATE_GRINDING;
         update_display();
+        grind_debounce_time = 0;
       }
     }
   }
@@ -206,7 +208,7 @@ void proc_grinding(){
       lcd.clear();
       update_display();
       #ifdef debug
-        Serial.println("dropped out of grinding due to time rpeset trigger");
+        Serial.println("dropped out of grinding due to time reset trigger");
       #endif
       state = STATE_DONE;
     }
