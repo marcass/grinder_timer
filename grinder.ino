@@ -31,8 +31,7 @@ const int MAX_GRIND_TIME = 15000;
 const int NUM_ADC_STATES = 1024;
 const int COOL_DOWN = 3000; //number of seconds to cool down after grinding
 const int GRIND_BUTTON = 2;
-const int EVENT_BUTTON = 3; //ned interrupt on this button too
-const int EVENT_INT = 1; //digital pin 3
+const int EVENT_BUTTON = 3; 
 const int POTI_PIN = 3;    // select the input pin for the potentiometer analogue pin 3
 const int STATUS_LED_PIN = 9; // pin9 is a PWM pin and allows for analogWrite.
 //switching phase and neutral for safety
@@ -47,9 +46,7 @@ unsigned long grind_debounce_time = 0;
 unsigned long mode_debounce_time = 0;
 int status_led_brightness = 0;
 int fade_rate = 10;
-bool event_interrupt = 0;
 bool timer_starts;
-//volatile bool interrupt_triggered = false;
 
 int val = 0;
 char buf[16];
@@ -91,14 +88,7 @@ void mode_change() {
   }
 }
 
-//void grinding(){
-//  attachInterrupt(EVENT_INT, stop_grinding, RISING);
-//  event_interrupt = 1;
-//  state = STATE_GRINDING;
-//}
-
 long int new_val;
-
 
 void proc_idle() {
   val = analogRead(POTI_PIN);
@@ -122,11 +112,6 @@ void proc_idle() {
     }
   }
   if (mode == MODE_TIMER) {
-    //sanity check on interrupts
-//    if (event_interrupt) {
-//      detachInterrupt(EVENT_INT);
-//      event_interrupt = 0;
-//    }
     if (digitalRead(GRIND_BUTTON) == HIGH) { 
       //do debounce stuff
       if (grind_debounce_time == 0){
@@ -145,11 +130,6 @@ void proc_idle() {
   }
   //if not in timer mode need to grind on button push
   if (mode == MODE_DEMAND) {
-    //sanity check
-//    if (event_interrupt) {
-//      detachInterrupt(EVENT_INT);
-//      event_interrupt = 0;
-//    }
     if (digitalRead(GRIND_BUTTON) == HIGH) { 
       //do debounce stuff
       if (grind_debounce_time == 0){
@@ -165,46 +145,16 @@ void proc_idle() {
   }
 }
 
-//void stop_grinding(){
-//  interrupt_triggered = true;
-//  state = STATE_DONE;
-//}
-
 void proc_grinding(){
-//  #ifdef debug
-//    Serial.println(state);
-//    Serial.println("Grinding!!!");
-//  #endif
   update_display();
   if (mode == MODE_TIMER) {
-//     #ifdef debug
-//        Serial.print("Grind time = ");
-//        Serial.print(grind_time);
-//        Serial.println("s");
-//    #endif
-    //sanity check on interrupts
-//    if (!event_interrupt) {
-//      attachInterrupt(EVENT_INT, stop_grinding, RISING);
-//      event_interrupt = 1;
-//    }
     //set flag for timer start
     if (timer_starts) {
       grind_start = millis();
       timer_starts = false;
-      //arbitrary low value for false stops
-      //grind_time = 1;
     }
-    //now = millis();
     grind_time = millis() - grind_start;   //grinding ends if grind time reached or event button is pressed to cancel
-//    if (grind_time == 0) {
-//      //something went wrong so do nothing and loop again
-//      #ifdef debug
-//        Serial.println("Variable problem");
-//      #endif
-//    }
-    //else 
     if (grind_time > grind_time_preset){
-      //handle a cancellation push of button with interrupt on event button
       lcd.clear();
       update_display();
       #ifdef debug
@@ -212,6 +162,7 @@ void proc_grinding(){
       #endif
       state = STATE_DONE;
     }
+    //handle a cancellation with push of event button
     if (digitalRead(EVENT_BUTTON) == HIGH) { 
     //do debounce stuff
       if (mode_debounce_time == 0){
@@ -237,28 +188,17 @@ void proc_grinding(){
 }
 
 void proc_done(){
-//  if (interrupt_triggered) {
-//    #ifdef debug
-//      Serial.println("killed by interrupt");
-//    #endif
-//    interrupt_triggered = false;
-//  }
   update_display();
   if (digitalRead(GRIND_BUTTON) == LOW) {
      manage_outputs();
      if (mode == MODE_TIMER) {
        delay(COOL_DOWN);
-       //detachInterrupt(EVENT_INT);
-       event_interrupt = 0;
-//       grind_start = 0;
-//       grind_time = 0;
        state = STATE_IDLE;
      }
      if (mode == MODE_DEMAND) {
        state = STATE_IDLE;
      }
      lcd.clear();
-     //delay(1000);
      update_display();
   }
 }
