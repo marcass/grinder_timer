@@ -21,7 +21,7 @@ const int STATE_DONE = 2;
 const int MODE_TIMER = 0;
 const int MODE_DEMAND = 1;
 
-volatile int state = STATE_IDLE;
+int state = STATE_IDLE;
 int mode = MODE_TIMER;
 
 // this constant won't change:
@@ -49,7 +49,7 @@ int status_led_brightness = 0;
 int fade_rate = 10;
 bool event_interrupt = 0;
 bool timer_starts;
-volatile bool interrupt_triggered = false;
+//volatile bool interrupt_triggered = false;
 
 int val = 0;
 char buf[16];
@@ -71,9 +71,9 @@ void setup() {
   digitalWrite(RELAY_PIN_L, LOW);  
   //initialize event button
   pinMode(EVENT_BUTTON, INPUT);
-  digitalWrite(EVENT_BUTTON, LOW); //check to see if it needs to be pulled up or down
+  digitalWrite(EVENT_BUTTON, LOW); 
   // initialize serial communication:
-  Serial.begin(115200);  // Used to type in characters
+  Serial.begin(115200);  
   // initialize lcd
   lcd.begin(16,2);
   lcd.backlight(); // finish with backlight on  
@@ -114,7 +114,7 @@ void proc_idle() {
     if (mode_debounce_time == 0){
       mode_debounce_time = millis();
     }
-    if (millis() - grind_debounce_time > DEBOUNCE_DELAY) {
+    if (millis() - mode_debounce_time > DEBOUNCE_DELAY) {
       //over debounce threshold so change mode
       mode_debounce_time = 0;
       mode_change();
@@ -163,10 +163,10 @@ void proc_idle() {
   }
 }
 
-void stop_grinding(){
-  interrupt_triggered = true;
-  state = STATE_DONE;
-}
+//void stop_grinding(){
+//  interrupt_triggered = true;
+//  state = STATE_DONE;
+//}
 
 void proc_grinding(){
 //  #ifdef debug
@@ -182,7 +182,7 @@ void proc_grinding(){
 //    #endif
     //sanity check on interrupts
 //    if (!event_interrupt) {
-      attachInterrupt(EVENT_INT, stop_grinding, RISING);
+//      attachInterrupt(EVENT_INT, stop_grinding, RISING);
 //      event_interrupt = 1;
 //    }
     //set flag for timer start
@@ -190,17 +190,18 @@ void proc_grinding(){
       grind_start = millis();
       timer_starts = false;
       //arbitrary low value for false stops
-      grind_time = 1;
+      //grind_time = 1;
     }
     //now = millis();
     grind_time = millis() - grind_start;   //grinding ends if grind time reached or event button is pressed to cancel
-    if (grind_time == 0) {
-      //something went wrong so do nothing and loop again
-      #ifdef debug
-        Serial.println("Variable problem");
-      #endif
-    }
-    else if (grind_time > grind_time_preset){
+//    if (grind_time == 0) {
+//      //something went wrong so do nothing and loop again
+//      #ifdef debug
+//        Serial.println("Variable problem");
+//      #endif
+//    }
+    //else 
+    if (grind_time > grind_time_preset){
       //handle a cancellation push of button with interrupt on event button
       lcd.clear();
       update_display();
@@ -208,6 +209,20 @@ void proc_grinding(){
         Serial.println("dropped out of grinding due to time rpeset trigger");
       #endif
       state = STATE_DONE;
+    }
+    if (digitalRead(EVENT_BUTTON) == HIGH) { 
+    //do debounce stuff
+      if (mode_debounce_time == 0){
+        mode_debounce_time = millis();
+      }
+      if (millis() - mode_debounce_time > DEBOUNCE_DELAY) {
+        //over debounce threshold so stop grinding
+        mode_debounce_time = 0;
+        #ifdef debug
+          Serial.println("Killed by event button");
+        #endif
+        state = STATE_DONE;
+      }
     }
   }
   if (mode == MODE_DEMAND) {   //grind on demand so while button is pushed we will grind
@@ -220,18 +235,18 @@ void proc_grinding(){
 }
 
 void proc_done(){
-  if (interrupt_triggered) {
-    #ifdef debug
-      Serial.println("killed by interrupt");
-    #endif
-    interrupt_triggered = false;
-  }
+//  if (interrupt_triggered) {
+//    #ifdef debug
+//      Serial.println("killed by interrupt");
+//    #endif
+//    interrupt_triggered = false;
+//  }
   update_display();
   if (digitalRead(GRIND_BUTTON) == LOW) {
      manage_outputs();
      if (mode == MODE_TIMER) {
        delay(COOL_DOWN);
-       detachInterrupt(EVENT_INT);
+       //detachInterrupt(EVENT_INT);
        event_interrupt = 0;
 //       grind_start = 0;
 //       grind_time = 0;
