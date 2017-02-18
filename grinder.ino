@@ -36,7 +36,7 @@ const int POTI_PIN = 3;    // select the input pin for the potentiometer analogu
 const int STATUS_LED_PIN = 9; // pin9 is a PWM pin and allows for analogWrite.
 //switching phase and neutral for safety
 const int RELAY_PIN_L = 11;
-const int RELAY_PIN_N = 12;
+//const int RELAY_PIN_N = 12;
 const int DEBOUNCE_DELAY = 50;
 
 // Variables will change:
@@ -62,8 +62,8 @@ void setup() {
   // initialize the button LED as an output
   pinMode(STATUS_LED_PIN, OUTPUT);
   // initialize the RELAY as an output
-  pinMode(RELAY_PIN_N, OUTPUT);
-  digitalWrite(RELAY_PIN_N, LOW);
+//  pinMode(RELAY_PIN_N, OUTPUT);
+//  digitalWrite(RELAY_PIN_N, LOW);
   pinMode(RELAY_PIN_L, OUTPUT);
   digitalWrite(RELAY_PIN_L, LOW);  
   //initialize event button
@@ -206,7 +206,7 @@ void proc_done(){
 void manage_outputs(){
   if (state == STATE_GRINDING){
     digitalWrite(RELAY_PIN_L, HIGH);
-    digitalWrite(RELAY_PIN_N, HIGH);
+//    digitalWrite(RELAY_PIN_N, HIGH);
     analogWrite(STATUS_LED_PIN, status_led_brightness);
     status_led_brightness += fade_rate;    
     if (status_led_brightness <= 0 || status_led_brightness >= 255) {
@@ -215,7 +215,7 @@ void manage_outputs(){
     //delay(1); // delay to see fade
   }else{
     digitalWrite(RELAY_PIN_L, LOW);
-    digitalWrite(RELAY_PIN_N, LOW);
+//    digitalWrite(RELAY_PIN_N, LOW);
     digitalWrite(STATUS_LED_PIN, HIGH);
   }
 }
