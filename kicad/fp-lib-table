@@ -1,0 +1,5 @@
+(fp_lib_table
+  (lib (name Capacitors_THT)(type KiCad)(uri /home/mw/Downloads/Capacitors_THT.pretty)(options "")(descr ""))
+  (lib (name Resistors_THT)(type KiCad)(uri /home/mw/Downloads/Resistors_THT.pretty)(options "")(descr ""))
+  (lib (name arduino_nano)(type KiCad)(uri /home/mw/git/furnace_control/kicad/lib/arduino_nano.pretty)(options "")(descr ""))
+)
