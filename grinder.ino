@@ -5,6 +5,8 @@
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 
 #define debug
+//#define rotary_encoder
+#define pot
 
 /* FINITE STATE MACHINE STATES
  *  STATE_IDLE -> STATE_GRINDING
@@ -32,7 +34,14 @@ const int NUM_ADC_STATES = 1024;
 const int COOL_DOWN = 3000; //number of seconds to cool down after grinding
 const int GRIND_BUTTON = 2;
 const int EVENT_BUTTON = 3; 
-const int POTI_PIN = 3;    // select the input pin for the potentiometer analogue pin 3
+#ifdef pot
+  const int POTI_PIN = 3;    // select the input pin for the potentiometer analogue pin 3
+#endif
+#ifdef rotary_encoder
+  const int CLK = A0;
+  const int DT = A1;
+  #define ENC_PORT PINC
+#endif
 const int STATUS_LED_PIN = 9; // pin9 is a PWM pin and allows for analogWrite.
 //switching phase and neutral for safety
 const int RELAY_PIN_L = 11;
@@ -75,6 +84,10 @@ void setup() {
   lcd.begin(16,2);
   lcd.backlight(); // finish with backlight on  
   lcd.clear();
+  #ifdef rotary_encoder
+    pinMode(DT, INPUT_PULLUP);
+    pinMode(SLK, INPUT_PULLUP);
+  #endif  
 }
 
 void mode_change() {
@@ -90,13 +103,44 @@ void mode_change() {
 
 long int new_val;
 
+#ifdef roatry_encoder
+ /* returns change in encoder state (-1,0,1) */
+  int8_t read_encoder()
+  {
+    static int8_t enc_states[] = {0,-1,1,0,1,0,0,-1,-1,0,0,1,0,1,-1,0};
+    static uint8_t old_AB = 0;
+    /**/
+    old_AB <<= 2;                   //remember previous state
+    old_AB |= ( ENC_PORT & 0x03 );  //add current state
+    return ( enc_states[( old_AB & 0x0f )]);
+  }
+#endif
+
 void proc_idle() {
+  #ifdef roatry_encoder
+    //see https://www.circuitsathome.com/mcu/reading-rotary-encoder-on-arduino/
+    static uint8_t counter = 0;      //this variable will be changed by encoder input
+    int8_t tmpdata;
+    /**/
+    tmpdata = read_encoder();
+    if( tmpdata ) { //if non-zero value returned
+      #ifdef debug
+        Serial.print("Counter value: ");
+        Serial.println(counter, DEC);
+      #endif
+      counter += tmpdata; 
+      grind_time_preset = (grind_time_preset + (tmpdata * 50)); //increment or decrement present value in multiples of 50ms
+      update_display();
+    }    
+  #endif
+  #ifdef pot
   val = analogRead(POTI_PIN);
   grind_time_preset =  int(float(val)/(NUM_ADC_STATES-1) * (MAX_GRIND_TIME-MIN_GRIND_TIME)) + MIN_GRIND_TIME;
-  if (abs(val-new_val) > 20 ) {
-    update_display();
-    new_val = val;
-  }
+    if (abs(val-new_val) > 20 ) {
+      update_display();
+      new_val = val;
+    }
+  #endif
 
   //interupts not working for mode so read value of button
   if (digitalRead(EVENT_BUTTON) == HIGH) { 
