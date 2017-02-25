@@ -4,6 +4,15 @@
 #include <LiquidCrystal_I2C.h>
 LiquidCrystal_I2C lcd(0x27, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE);  // Set the LCD I2C address
 
+//preset storage (from reboot for rotary encoder value)
+// PRESET STORAGE
+#include <EEPROM.h>
+#include "/home/mw/git/grinder/EEPROMAnything.h"
+struct config_t
+{
+   int preset;
+} configuration;
+
 #define debug
 //#define rotary_encoder
 #define pot
@@ -65,6 +74,13 @@ int sensorValue = 0;  // variable to store the value coming from the potentiaome
 int sensorValueNew = 0;
 
 void setup() {
+  //read preset storage
+  EEPROM_readAnything(0, configuration);
+  if (configuration.preset == -1) {
+        configuration.preset = 10;
+  }
+  EEPROM_writeAnything(0, configuration);
+    
   // initialize the button pin as an input
   pinMode(GRIND_BUTTON, INPUT);
   digitalWrite(GRIND_BUTTON, LOW);
@@ -131,6 +147,8 @@ void proc_idle() {
       counter += tmpdata; 
       grind_time_preset = (grind_time_preset + (tmpdata * 50)); //increment or decrement present value in multiples of 50ms
       update_display();
+      configuration.preset = grind_time_preset;
+      EEPROM_writeAnything(0, configuration);
     }    
   #endif
   #ifdef pot
