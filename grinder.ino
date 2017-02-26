@@ -35,12 +35,13 @@ const int MODE_DEMAND = 1;
 int state = STATE_IDLE;
 int mode = MODE_TIMER;
 
-// this constant won't change:
+// these constants won't change:
 
 const int MIN_GRIND_TIME = 5000;
 const int MAX_GRIND_TIME = 15000;
 const int NUM_ADC_STATES = 1024;
 const int COOL_DOWN = 3000; //number of seconds to cool down after grinding
+const int ROT_ADJ_THRESH = 100; //0.1 of a second
 const int GRIND_BUTTON = 2;
 const int EVENT_BUTTON = 3; 
 #ifdef pot
@@ -62,6 +63,7 @@ unsigned long grind_start = 0;
 unsigned long grind_time = 0;
 unsigned long grind_debounce_time = 0;
 unsigned long mode_debounce_time = 0;
+unsigned long adjust_time_start = 0;
 int status_led_brightness = 0;
 int fade_rate = 10;
 bool timer_starts;
@@ -146,18 +148,26 @@ void proc_idle() {
       #endif
       counter += tmpdata; 
       grind_time_preset = (grind_time_preset + (tmpdata * 50)); //increment or decrement present value in multiples of 50ms
-      update_display();
-      configuration.preset = grind_time_preset;
-      EEPROM_writeAnything(0, configuration);
+      //update display every 100ms
+      if (adjust_time_start == 0) {
+        adjust_time_start = millis();
+      }
+      if (millis() - adjust_time_start > ROT_ADJ_THRESH) {
+        update_display();
+        configuration.preset = grind_time_preset;
+        EEPROM_writeAnything(0, configuration);
+        adjust_time_start = 0;
+      }
+
     }    
   #endif
   #ifdef pot
-  val = analogRead(POTI_PIN);
-  grind_time_preset =  int(float(val)/(NUM_ADC_STATES-1) * (MAX_GRIND_TIME-MIN_GRIND_TIME)) + MIN_GRIND_TIME;
-    if (abs(val-new_val) > 20 ) {
-      update_display();
-      new_val = val;
-    }
+    val = analogRead(POTI_PIN);
+    grind_time_preset =  int(float(val)/(NUM_ADC_STATES-1) * (MAX_GRIND_TIME-MIN_GRIND_TIME)) + MIN_GRIND_TIME;
+      if (abs(val-new_val) > 20 ) {
+        update_display();
+        new_val = val;
+      }
   #endif
 
   //interupts not working for mode so read value of button
