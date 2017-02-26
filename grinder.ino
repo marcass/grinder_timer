@@ -77,7 +77,7 @@ void setup() {
   //read preset storage
   EEPROM_readAnything(0, configuration);
   if (configuration.preset == -1) {
-        configuration.preset = 10;
+        configuration.preset = 9000;
   }
   EEPROM_writeAnything(0, configuration);
     
