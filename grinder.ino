@@ -42,20 +42,19 @@ const int MAX_GRIND_TIME = 15000;
 const int NUM_ADC_STATES = 1024;
 const int COOL_DOWN = 3000; //number of seconds to cool down after grinding
 const int ROT_ADJ_THRESH = 100; //0.1 of a second
-const int GRIND_BUTTON = 2;
-const int EVENT_BUTTON = 3; 
+const int GRIND_BUTTON = 6;
+const int EVENT_BUTTON = 5; 
 #ifdef pot
-  const int POTI_PIN = 3;    // select the input pin for the potentiometer analogue pin 3
+  const int POTI_PIN = 1;    // select the input pin for the potentiometer analogue pin 0
 #endif
 #ifdef rotary_encoder
   const int CLK = A0;
   const int DT = A1;
   #define ENC_PORT PINC
 #endif
-const int STATUS_LED_PIN = 9; // pin9 is a PWM pin and allows for analogWrite.
+const int STATUS_LED_PIN = 4; // pin9 is a PWM pin and allows for analogWrite.
 //switching phase and neutral for safety
-const int RELAY_PIN_L = 11;
-//const int RELAY_PIN_N = 12;
+const int RELAY_PIN_L = 12;
 const int DEBOUNCE_DELAY = 50;
 
 // Variables will change:
@@ -279,11 +278,11 @@ void manage_outputs(){
   if (state == STATE_GRINDING){
     digitalWrite(RELAY_PIN_L, HIGH);
 //    digitalWrite(RELAY_PIN_N, HIGH);
-    analogWrite(STATUS_LED_PIN, status_led_brightness);
-    status_led_brightness += fade_rate;    
-    if (status_led_brightness <= 0 || status_led_brightness >= 255) {
-      fade_rate = -fade_rate;
-    }
+//    analogWrite(STATUS_LED_PIN, status_led_brightness);
+//    status_led_brightness += fade_rate;    
+//    if (status_led_brightness <= 0 || status_led_brightness >= 255) {
+//      fade_rate = -fade_rate;
+//    }
     //delay(1); // delay to see fade
   }else{
     digitalWrite(RELAY_PIN_L, LOW);
