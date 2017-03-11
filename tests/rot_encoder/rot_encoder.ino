@@ -21,6 +21,7 @@ void loop()
 {
  static uint8_t counter = 0;   //this variable will be changed by encoder input
  int8_t tmpdata;
+ int x;
  /**/
   tmpdata = read_encoder();
   if( tmpdata ) {
@@ -32,21 +33,19 @@ void loop()
     Serial.print("  Grind time = ");
     Serial.println(grind_time_preset);
     counter += tmpdata;
-//    int val = grind_time_preset + ((tmpdata * 50)/4);
-    grind_time_preset = (grind_time_preset + (tmpdata * 20));
-//    if ((grind_time_preset < MAX_GRIND_TIME) || (grind_time_preset > MIN_GRIND_TIME)) {
-//      grind_time_preset = val;
-//    }else 
-    if (grind_time_preset > MAX_GRIND_TIME) {
-      grind_time_preset = MAX_GRIND_TIME;
-    }else if (grind_time_preset < MIN_GRIND_TIME) {
-      grind_time_preset = MIN_GRIND_TIME;
+    x = counter % 4;
+    if (x == 0) {
+      grind_time_preset = (grind_time_preset + (tmpdata * 50));
+      if (grind_time_preset > MAX_GRIND_TIME) {
+        grind_time_preset = MAX_GRIND_TIME;
+      }else if (grind_time_preset < MIN_GRIND_TIME) {
+        grind_time_preset = MIN_GRIND_TIME;
+      }
     }
   Serial.print("Counter value: ");
   Serial.print(counter, DEC);
   Serial.print("  Grind time = ");
   Serial.println(grind_time_preset);
-  prev_counter = counter;
   }
 }
  

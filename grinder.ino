@@ -139,15 +139,16 @@ void proc_idle() {
     //see https://www.circuitsathome.com/mcu/reading-rotary-encoder-on-arduino/
     static uint8_t counter = 0;      //this variable will be changed by encoder input
     int8_t tmpdata;
-    /**/
+    int x;
     tmpdata = read_encoder();
     if( tmpdata ) { //if non-zero value returned
       #ifdef debug
         Serial.print("Counter value: ");
         Serial.println(counter, DEC);
       #endif
-      counter += tmpdata; 
-      grind_time_preset = (grind_time_preset + (tmpdata * 20)); //increment or decrement present value in multiples of 80ms
+      counter += tmpdata;
+      x = counter % 4; // 4 counts per click so use modulo
+      grind_time_preset = (grind_time_preset + (tmpdata * 100)); //increment or decrement present value in multiples of 100ms
       if (grind_time_preset > MAX_GRIND_TIME) { //don't let it be more than max
         grind_time_preset = MAX_GRIND_TIME;
       }else if (grind_time_preset < MIN_GRIND_TIME) { //don't let it be less than min
