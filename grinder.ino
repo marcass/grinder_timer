@@ -42,17 +42,24 @@ const int MAX_GRIND_TIME = 15000;
 const int NUM_ADC_STATES = 1024;
 const int COOL_DOWN = 3000; //number of seconds to cool down after grinding
 const int ROT_ADJ_THRESH = 100; //0.1 of a second
+const long EEPROM_ADJ_THRESH = 600000; //10min
 const int GRIND_BUTTON = 6;
 const int EVENT_BUTTON = 5; 
+
 #ifdef pot
   const int POTI_PIN = 1;    // select the input pin for the potentiometer analogue pin 0
 #endif
+
 #ifdef rotary_encoder
   //swap pins on board to get it turning right way!
   const int CLK = A0;
   const int DT = A1;
+  unsigned long eeprom_adjust_start = 0;
+  bool eeprom_adjust = false; 
+  bool grind_time_changed = false;
   #define ENC_PORT PINC
 #endif
+
 const int STATUS_LED_PIN = 4; // pin9 is a PWM pin and allows for analogWrite.
 //switching phase and neutral for safety
 const int RELAY_PIN_L = 12;
@@ -61,6 +68,7 @@ const int DEBOUNCE_DELAY = 50;
 // Variables will change:
 unsigned long grind_start = 0;
 unsigned long grind_time = 0;
+long prev_grind_time;
 unsigned long grind_debounce_time = 0;
 unsigned long mode_debounce_time = 0;
 unsigned long adjust_time_start = 0;
@@ -134,6 +142,14 @@ long int new_val;
   }
 #endif
 
+void test_grind_time_preset() {
+  if (grind_time_preset > MAX_GRIND_TIME) { //don't let it be more than max
+      grind_time_preset = MAX_GRIND_TIME;
+  }else if (grind_time_preset < MIN_GRIND_TIME) { //don't let it be less than min
+    grind_time_preset = MIN_GRIND_TIME;
+  }  
+}
+
 void proc_idle() {
   #ifdef roatry_encoder
     //see https://www.circuitsathome.com/mcu/reading-rotary-encoder-on-arduino/
@@ -142,6 +158,7 @@ void proc_idle() {
     int x;
     tmpdata = read_encoder();
     if( tmpdata ) { //if non-zero value returned
+      prev_grind_time = grind_time_preset;
       #ifdef debug
         Serial.print("Counter value: ");
         Serial.println(counter, DEC);
@@ -149,23 +166,33 @@ void proc_idle() {
       counter += tmpdata;
       x = counter % 4; // 4 counts per click so use modulo
       grind_time_preset = (grind_time_preset + (tmpdata * 100)); //increment or decrement present value in multiples of 100ms
-      if (grind_time_preset > MAX_GRIND_TIME) { //don't let it be more than max
-        grind_time_preset = MAX_GRIND_TIME;
-      }else if (grind_time_preset < MIN_GRIND_TIME) { //don't let it be less than min
-        grind_time_preset = MIN_GRIND_TIME;
-      }
-      //update display every 100ms
+      test_grind_time_preset();
+      grind_time_changed = true;
+    }
+    if (grind_time_changed) {
       if (adjust_time_start == 0) {
         adjust_time_start = millis();
       }
       if (millis() - adjust_time_start > ROT_ADJ_THRESH) {
         update_display();
+        grind_time_changed = false;
+        adjust_time_start = 0;
+        eeprom_adjust_start = 0;
+      }
+    if (eeprom_adjust_start == 0) {
+      eeprom_adjust_start = millis();
+      eeprom_adjust = true;      
+    }
+    if (eeprom_adjust) {
+      if (millis() - eeprom_adjust_start > EEPROM_ADJ_THRESH) {
         configuration.preset = grind_time_preset;
         EEPROM_writeAnything(0, configuration);
-        adjust_time_start = 0;
+        eeprom_adjust = false;
+        eeprom_adjust_start = 0;
       }
+    }
 
-    }    
+    
   #endif
   #ifdef pot
     val = analogRead(POTI_PIN);
