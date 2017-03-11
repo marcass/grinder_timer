@@ -48,6 +48,7 @@ const int EVENT_BUTTON = 5;
   const int POTI_PIN = 1;    // select the input pin for the potentiometer analogue pin 0
 #endif
 #ifdef rotary_encoder
+  //swap pins on board to get it turning right way!
   const int CLK = A0;
   const int DT = A1;
   #define ENC_PORT PINC
@@ -146,7 +147,12 @@ void proc_idle() {
         Serial.println(counter, DEC);
       #endif
       counter += tmpdata; 
-      grind_time_preset = (grind_time_preset + (tmpdata * 50)); //increment or decrement present value in multiples of 50ms
+      grind_time_preset = (grind_time_preset + (tmpdata * 20)); //increment or decrement present value in multiples of 80ms
+      if (grind_time_preset > MAX_GRIND_TIME) { //don't let it be more than max
+        grind_time_preset = MAX_GRIND_TIME;
+      }else if (grind_time_preset < MIN_GRIND_TIME) { //don't let it be less than min
+        grind_time_preset = MIN_GRIND_TIME;
+      }
       //update display every 100ms
       if (adjust_time_start == 0) {
         adjust_time_start = millis();
