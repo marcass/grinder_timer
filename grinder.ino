@@ -1,4 +1,6 @@
 //Runs a mazzer superjolly grinder with timer
+
+//NOT PRODUCTIOIN CODE see rot_encoder_live.ino for production code
 #include <Wire.h>
 //https://bitbucket.org/fmalpartida/new-liquidcrystal/wiki/Home
 #include <LiquidCrystal_I2C.h>
@@ -13,9 +15,9 @@ struct config_t
    int preset;
 } configuration;
 
-#define debug
-//#define rotary_encoder
-#define pot
+//#define debug
+#define rotary_encoder
+//#define pot
 
 /* FINITE STATE MACHINE STATES
  *  STATE_IDLE -> STATE_GRINDING
@@ -42,7 +44,7 @@ const int MAX_GRIND_TIME = 15000;
 const int NUM_ADC_STATES = 1024;
 const int COOL_DOWN = 3000; //number of seconds to cool down after grinding
 const int ROT_ADJ_THRESH = 100; //0.1 of a second
-const long EEPROM_ADJ_THRESH = 600000; //10min
+const long EEPROM_ADJ_THRESH = 30000; //TEST 600000; //10min
 const int GRIND_BUTTON = 6;
 const int EVENT_BUTTON = 5; 
 
@@ -54,13 +56,15 @@ const int EVENT_BUTTON = 5;
   //swap pins on board to get it turning right way!
   const int CLK = A0;
   const int DT = A1;
-  unsigned long eeprom_adjust_start = 0;
-  bool eeprom_adjust = false; 
-  bool grind_time_changed = false;
+//  unsigned long eeprom_adjust_start = 0;
+//  bool eeprom_adjust = false; 
+//  bool grind_time_changed = false;
   #define ENC_PORT PINC
+  long new_preset;
+  bool newPreset = false;
 #endif
 
-const int STATUS_LED_PIN = 4; // pin9 is a PWM pin and allows for analogWrite.
+const int STATUS_LED_PIN = 9; // pin9 is a PWM pin and allows for analogWrite.
 //switching phase and neutral for safety
 const int RELAY_PIN_L = 12;
 const int DEBOUNCE_DELAY = 50;
@@ -75,6 +79,8 @@ unsigned long adjust_time_start = 0;
 int status_led_brightness = 0;
 int fade_rate = 10;
 bool timer_starts;
+unsigned long previousMillis = 0;
+
 
 int val = 0;
 char buf[16];
@@ -84,13 +90,7 @@ int sensorValue = 0;  // variable to store the value coming from the potentiaome
 int sensorValueNew = 0;
 
 void setup() {
-  //read preset storage
-  EEPROM_readAnything(0, configuration);
-  if (configuration.preset == -1) {
-        configuration.preset = 9000;
-  }
-  EEPROM_writeAnything(0, configuration);
-    
+  
   // initialize the button pin as an input
   pinMode(GRIND_BUTTON, INPUT);
   digitalWrite(GRIND_BUTTON, LOW);
@@ -111,8 +111,17 @@ void setup() {
   lcd.backlight(); // finish with backlight on  
   lcd.clear();
   #ifdef rotary_encoder
-    pinMode(DT, INPUT_PULLUP);
-    pinMode(SLK, INPUT_PULLUP);
+    pinMode(DT, INPUT);
+    digitalWrite(DT, HIGH);
+    pinMode(CLK, INPUT);
+    digitalWrite(CLK, HIGH);
+    //read preset storage
+    EEPROM_readAnything(0, configuration);
+    if (configuration.preset == -1) {
+          configuration.preset = 9000;
+    }
+    EEPROM_writeAnything(0, configuration);
+    //update_display();
   #endif  
 }
 
@@ -126,8 +135,6 @@ void mode_change() {
     delay(500);
   }
 }
-
-long int new_val;
 
 #ifdef roatry_encoder
  /* returns change in encoder state (-1,0,1) */
@@ -143,11 +150,14 @@ long int new_val;
 #endif
 
 void test_grind_time_preset() {
-  if (grind_time_preset > MAX_GRIND_TIME) { //don't let it be more than max
+  if (new_preset > MAX_GRIND_TIME) { //don't let it be more than max
       grind_time_preset = MAX_GRIND_TIME;
-  }else if (grind_time_preset < MIN_GRIND_TIME) { //don't let it be less than min
+  }else if (new_preset < MIN_GRIND_TIME) { //don't let it be less than min
     grind_time_preset = MIN_GRIND_TIME;
-  }  
+  }else {
+    grind_time_preset = new_preset;
+  }
+  newPreset = true;
 }
 
 void proc_idle() {
@@ -158,43 +168,27 @@ void proc_idle() {
     int x;
     tmpdata = read_encoder();
     if( tmpdata ) { //if non-zero value returned
-      prev_grind_time = grind_time_preset;
+      Serial.print("Counter value: ");
+      Serial.print(counter, DEC);
+      Serial.print("tmpdata: ");
+      Serial.print(tmpdata);   
+      Serial.print("  Grind time = ");
+      Serial.println(grind_time_preset);
+      //prev_grind_time = grind_time_preset;
       #ifdef debug
         Serial.print("Counter value: ");
         Serial.println(counter, DEC);
       #endif
       counter += tmpdata;
       x = counter % 4; // 4 counts per click so use modulo
-      grind_time_preset = (grind_time_preset + (tmpdata * 100)); //increment or decrement present value in multiples of 100ms
+      new_preset = (grind_time_preset + (tmpdata * 100)); //increment or decrement present value in multiples of 100ms
       test_grind_time_preset();
-      grind_time_changed = true;
+      update_display();
     }
-    if (grind_time_changed) {
-      if (adjust_time_start == 0) {
-        adjust_time_start = millis();
-      }
-      if (millis() - adjust_time_start > ROT_ADJ_THRESH) {
-        update_display();
-        grind_time_changed = false;
-        adjust_time_start = 0;
-        eeprom_adjust_start = 0;
-      }
-    if (eeprom_adjust_start == 0) {
-      eeprom_adjust_start = millis();
-      eeprom_adjust = true;      
-    }
-    if (eeprom_adjust) {
-      if (millis() - eeprom_adjust_start > EEPROM_ADJ_THRESH) {
-        configuration.preset = grind_time_preset;
-        EEPROM_writeAnything(0, configuration);
-        eeprom_adjust = false;
-        eeprom_adjust_start = 0;
-      }
-    }
-
-    
   #endif
+  
   #ifdef pot
+    long int new_val;
     val = analogRead(POTI_PIN);
     grind_time_preset =  int(float(val)/(NUM_ADC_STATES-1) * (MAX_GRIND_TIME-MIN_GRIND_TIME)) + MIN_GRIND_TIME;
       if (abs(val-new_val) > 20 ) {
@@ -312,11 +306,11 @@ void manage_outputs(){
   if (state == STATE_GRINDING){
     digitalWrite(RELAY_PIN_L, HIGH);
 //    digitalWrite(RELAY_PIN_N, HIGH);
-//    analogWrite(STATUS_LED_PIN, status_led_brightness);
-//    status_led_brightness += fade_rate;    
-//    if (status_led_brightness <= 0 || status_led_brightness >= 255) {
-//      fade_rate = -fade_rate;
-//    }
+    analogWrite(STATUS_LED_PIN, status_led_brightness);
+    status_led_brightness += fade_rate;    
+    if (status_led_brightness <= 0 || status_led_brightness >= 255) {
+      fade_rate = -fade_rate;
+    }
     //delay(1); // delay to see fade
   }else{
     digitalWrite(RELAY_PIN_L, LOW);
@@ -387,6 +381,15 @@ void loop() {
     Serial.print("     Mode is: ");
     Serial.println(mode);
    #endif
+
+   if (newPreset) { //start timer for EEPROM write
+     unsigned long currentMillis = millis();
+     if(millis() - adjust_time_start > EEPROM_ADJ_THRESH) {
+       configuration.preset = grind_time_preset;
+       EEPROM_writeAnything(0, configuration);
+       newPreset = false;
+     }
+   }
 }
 
 
