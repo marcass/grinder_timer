@@ -1,4 +1,4 @@
-update=Sat 28 Jan 2017 16:48:52 NZDT
+update=Fri 29 Jun 2018 19:43:29 NZST
 version=1
 last_client=kicad
 [pcbnew]
@@ -27,39 +27,4 @@ NetIExt=net
 version=1
 [eeschema]
 version=1
-LibDir=kicad_lib;kicad_lib/KiCad-Libraries-master/modules/Switches.pretty
-[eeschema/libraries]
-LibName1=grinder_timer-rescue
-LibName2=power
-LibName3=device
-LibName4=transistors
-LibName5=conn
-LibName6=linear
-LibName7=regul
-LibName8=74xx
-LibName9=cmos4000
-LibName10=adc-dac
-LibName11=memory
-LibName12=xilinx
-LibName13=microcontrollers
-LibName14=dsp
-LibName15=microchip
-LibName16=analog_switches
-LibName17=motorola
-LibName18=texas
-LibName19=intel
-LibName20=audio
-LibName21=interface
-LibName22=digital-audio
-LibName23=philips
-LibName24=display
-LibName25=cypress
-LibName26=siliconi
-LibName27=opto
-LibName28=atmel
-LibName29=contrib
-LibName30=valves
-LibName31=kicad_lib/arduino
-LibName32=kicad_lib/KiCad-Libraries-master/symbols/PowerComponents
-LibName33=kicad_lib/KiCad-Libraries-master/symbols/MiscellaneousDevices
-LibName34=/home/mw/Downloads/LCD
+LibDir=
