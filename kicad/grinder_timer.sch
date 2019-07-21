@@ -1,39 +1,6 @@
-EESchema Schematic File Version 2
-LIBS:grinder_timer-rescue
-LIBS:power
-LIBS:device
-LIBS:transistors
-LIBS:conn
-LIBS:linear
-LIBS:regul
-LIBS:74xx
-LIBS:cmos4000
-LIBS:adc-dac
-LIBS:memory
-LIBS:xilinx
-LIBS:microcontrollers
-LIBS:dsp
-LIBS:microchip
-LIBS:analog_switches
-LIBS:motorola
-LIBS:texas
-LIBS:intel
-LIBS:audio
-LIBS:interface
-LIBS:digital-audio
-LIBS:philips
-LIBS:display
-LIBS:cypress
-LIBS:siliconi
-LIBS:opto
-LIBS:atmel
-LIBS:contrib
-LIBS:valves
-LIBS:arduino
-LIBS:PowerComponents
-LIBS:MiscellaneousDevices
+EESchema Schematic File Version 4
 LIBS:grinder_timer-cache
-EELAYER 25 0
+EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
@@ -48,7 +15,7 @@ Comment3 ""
 Comment4 ""
 $EndDescr
 $Comp
-L arduino_mini U1
+L grinder_timer-rescue:arduino_mini U1
 U 1 1 5887E781
 P 2200 3000
 F 0 "U1" H 2700 2050 70  0000 C CNN
@@ -71,7 +38,7 @@ RL
 Text GLabel 3100 2450 2    60   Input ~ 0
 RL
 $Comp
-L GND #PWR01
+L grinder_timer-rescue:GND #PWR01
 U 1 1 588A6D00
 P 4000 6750
 F 0 "#PWR01" H 4000 6500 50  0001 C CNN
@@ -82,7 +49,7 @@ F 3 "" H 4000 6750 50  0000 C CNN
 	-1   0    0    -1  
 $EndComp
 $Comp
-L GND #PWR02
+L grinder_timer-rescue:GND #PWR02
 U 1 1 588A6D38
 P 1800 6400
 F 0 "#PWR02" H 1800 6150 50  0001 C CNN
@@ -93,7 +60,7 @@ F 3 "" H 1800 6400 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R3
+L grinder_timer-rescue:R R3
 U 1 1 588A6D98
 P 1800 6000
 F 0 "R3" V 1880 6000 50  0000 C CNN
@@ -104,7 +71,7 @@ F 3 "" H 1800 6000 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R2
+L grinder_timer-rescue:R R2
 U 1 1 588A6DCC
 P 4000 6400
 F 0 "R2" V 4080 6400 50  0000 C CNN
@@ -115,7 +82,7 @@ F 3 "" H 4000 6400 50  0000 C CNN
 	-1   0    0    -1  
 $EndComp
 $Comp
-L R R4
+L grinder_timer-rescue:R R4
 U 1 1 588A6FC8
 P 2550 6250
 F 0 "R4" V 2630 6250 50  0000 C CNN
@@ -128,7 +95,7 @@ $EndComp
 Text GLabel 4300 5850 2    60   Input ~ 0
 Button_LED
 $Comp
-L R R5
+L grinder_timer-rescue:R R5
 U 1 1 588A76BD
 P 4000 5850
 F 0 "R5" V 4080 5850 50  0000 C CNN
@@ -141,7 +108,7 @@ $EndComp
 Text GLabel 3500 3300 2    60   Input ~ 0
 Button_LED
 $Comp
-L GND #PWR03
+L grinder_timer-rescue:GND #PWR03
 U 1 1 588A7979
 P 2550 6450
 F 0 "#PWR03" H 2550 6200 50  0001 C CNN
@@ -166,7 +133,7 @@ DT_conn
 Text GLabel 2550 5100 1    60   Input ~ 0
 CLK_conn
 $Comp
-L CP C2
+L grinder_timer-rescue:CP C2
 U 1 1 58A7F980
 P 5700 2950
 F 0 "C2" H 5725 3050 50  0000 L CNN
@@ -177,7 +144,7 @@ F 3 "" H 5700 2950 50  0000 C CNN
 	-1   0    0    -1  
 $EndComp
 $Comp
-L CP C1
+L grinder_timer-rescue:CP C1
 U 1 1 58A7FC41
 P 7700 3100
 F 0 "C1" H 7725 3200 50  0000 L CNN
@@ -188,7 +155,7 @@ F 3 "" H 7700 3100 50  0000 C CNN
 	-1   0    0    -1  
 $EndComp
 $Comp
-L GND #PWR04
+L grinder_timer-rescue:GND #PWR04
 U 1 1 58A7FF34
 P 7700 3450
 F 0 "#PWR04" H 7700 3200 50  0001 C CNN
@@ -199,7 +166,7 @@ F 3 "" H 7700 3450 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR05
+L grinder_timer-rescue:GND #PWR05
 U 1 1 58A7FF5E
 P 5700 3250
 F 0 "#PWR05" H 5700 3000 50  0001 C CNN
@@ -210,7 +177,7 @@ F 3 "" H 5700 3250 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L +5V #PWR06
+L grinder_timer-rescue:+5V #PWR06
 U 1 1 58A7FF83
 P 2050 6950
 F 0 "#PWR06" H 2050 6800 50  0001 C CNN
@@ -221,7 +188,7 @@ F 3 "" H 2050 6950 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L R R6
+L grinder_timer-rescue:R R6
 U 1 1 58A801DE
 P 2300 6650
 F 0 "R6" V 2380 6650 50  0000 C CNN
@@ -238,7 +205,7 @@ CLK
 Text GLabel 3150 3500 2    60   Input ~ 0
 DT
 $Comp
-L +5V #PWR07
+L grinder_timer-rescue:+5V #PWR07
 U 1 1 58A80541
 P 2200 1750
 F 0 "#PWR07" H 2200 1600 50  0001 C CNN
@@ -249,7 +216,7 @@ F 3 "" H 2200 1750 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR08
+L grinder_timer-rescue:GND #PWR08
 U 1 1 58A80570
 P 2200 4600
 F 0 "#PWR08" H 2200 4350 50  0001 C CNN
@@ -260,7 +227,7 @@ F 3 "" H 2200 4600 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L CONN_01X08 P1
+L grinder_timer-rescue:CONN_01X08 P1
 U 1 1 58A80D49
 P 2950 5750
 F 0 "P1" H 2950 6200 50  0000 C CNN
@@ -271,7 +238,7 @@ F 3 "" H 2950 5750 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L CONN_01X08 P2
+L grinder_timer-rescue:CONN_01X08 P2
 U 1 1 58A80E00
 P 3450 5700
 F 0 "P2" H 3450 6150 50  0000 C CNN
@@ -282,7 +249,7 @@ F 3 "" H 3450 5700 50  0000 C CNN
 	-1   0    0    1   
 $EndComp
 $Comp
-L GND #PWR09
+L grinder_timer-rescue:GND #PWR09
 U 1 1 58A80FD8
 P 5150 6800
 F 0 "#PWR09" H 5150 6550 50  0001 C CNN
@@ -293,7 +260,7 @@ F 3 "" H 5150 6800 50  0000 C CNN
 	-1   0    0    -1  
 $EndComp
 $Comp
-L +5V #PWR010
+L grinder_timer-rescue:+5V #PWR010
 U 1 1 58A81069
 P 3650 5000
 F 0 "#PWR010" H 3650 4850 50  0001 C CNN
@@ -304,7 +271,7 @@ F 3 "" H 3650 5000 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L +5V #PWR011
+L grinder_timer-rescue:+5V #PWR011
 U 1 1 58A8161C
 P 2550 6900
 F 0 "#PWR011" H 2550 6750 50  0001 C CNN
@@ -315,7 +282,7 @@ F 3 "" H 2550 6900 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L GND #PWR012
+L grinder_timer-rescue:GND #PWR012
 U 1 1 58A8168E
 P 2750 6850
 F 0 "#PWR012" H 2750 6600 50  0001 C CNN
@@ -326,7 +293,7 @@ F 3 "" H 2750 6850 50  0000 C CNN
 	-1   0    0    -1  
 $EndComp
 $Comp
-L CONN_01X03 P3
+L grinder_timer-rescue:CONN_01X03 P3
 U 1 1 58A81789
 P 6100 2700
 F 0 "P3" H 6100 2900 50  0000 C CNN
@@ -337,7 +304,7 @@ F 3 "" H 6100 2700 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L CONN_01X03 P4
+L grinder_timer-rescue:CONN_01X03 P4
 U 1 1 58A81C5D
 P 8000 2750
 F 0 "P4" H 8000 2950 50  0000 C CNN
@@ -386,13 +353,7 @@ Wire Wire Line
 Wire Wire Line
 	1400 3200 1500 3200
 Wire Wire Line
-	2550 5100 2550 5400
-Wire Wire Line
 	2550 5400 2750 5400
-Connection ~ 2550 5150
-Wire Wire Line
-	2150 5500 2750 5500
-Connection ~ 2300 5500
 Wire Wire Line
 	2050 7100 2050 6950
 Wire Wire Line
@@ -422,11 +383,11 @@ Wire Wire Line
 Wire Wire Line
 	3650 5350 3650 5000
 Wire Wire Line
-	2250 5800 2750 5800
+	2250 5800 2300 5800
 Wire Wire Line
 	2050 7100 2300 7100
 Wire Wire Line
-	2500 5900 2750 5900
+	2500 5900 2550 5900
 Connection ~ 2300 5800
 Wire Wire Line
 	2550 7050 2550 6900
@@ -441,9 +402,9 @@ Wire Wire Line
 Wire Wire Line
 	5300 2700 5900 2700
 Wire Wire Line
-	5450 2800 5900 2800
+	5450 2800 5700 2800
 Wire Wire Line
-	7600 2850 7800 2850
+	7600 2850 7700 2850
 Wire Wire Line
 	7050 2750 7800 2750
 Wire Wire Line
@@ -455,7 +416,7 @@ Wire Wire Line
 Wire Wire Line
 	3650 5650 5150 5650
 $Comp
-L GND #PWR013
+L grinder_timer-rescue:GND #PWR013
 U 1 1 58A83412
 P 4950 7100
 F 0 "#PWR013" H 4950 6850 50  0001 C CNN
@@ -472,7 +433,7 @@ Wire Wire Line
 Wire Wire Line
 	4950 5750 3650 5750
 $Comp
-L +5V #PWR014
+L grinder_timer-rescue:+5V #PWR014
 U 1 1 58A83529
 P 3200 5100
 F 0 "#PWR014" H 3200 4950 50  0001 C CNN
@@ -489,12 +450,12 @@ Wire Wire Line
 Wire Wire Line
 	3700 6050 3700 6300
 Wire Wire Line
-	3650 5950 4150 5950
+	3650 5950 4000 5950
 Wire Wire Line
-	1750 5600 2750 5600
+	1750 5600 1800 5600
 Connection ~ 1800 5600
 $Comp
-L +5V #PWR015
+L grinder_timer-rescue:+5V #PWR015
 U 1 1 58A83B09
 P 1650 6950
 F 0 "#PWR015" H 1650 6800 50  0001 C CNN
@@ -525,7 +486,7 @@ Wire Wire Line
 	5600 2600 5900 2600
 Connection ~ 5700 2800
 $Comp
-L CONN_01X01 MH1
+L grinder_timer-rescue:CONN_01X01 MH1
 U 1 1 58A84A57
 P 6150 4200
 F 0 "MH1" H 6150 4300 50  0000 C CNN
@@ -536,7 +497,7 @@ F 3 "" H 6150 4200 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L CONN_01X01 MH2
+L grinder_timer-rescue:CONN_01X01 MH2
 U 1 1 58A84BDF
 P 6950 4200
 F 0 "MH2" H 6950 4300 50  0000 C CNN
@@ -547,7 +508,7 @@ F 3 "" H 6950 4200 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L CONN_01X01 MH3
+L grinder_timer-rescue:CONN_01X01 MH3
 U 1 1 58A84C2B
 P 7750 4250
 F 0 "MH3" H 7750 4350 50  0000 C CNN
@@ -558,7 +519,7 @@ F 3 "" H 7750 4250 50  0000 C CNN
 	1    0    0    -1  
 $EndComp
 $Comp
-L CONN_01X01 MH4
+L grinder_timer-rescue:CONN_01X01 MH4
 U 1 1 58A84CD0
 P 7350 5050
 F 0 "MH4" H 7350 5150 50  0000 C CNN
@@ -572,4 +533,20 @@ Wire Wire Line
 	2300 6500 2300 5800
 Wire Wire Line
 	3150 2750 2900 2750
+Wire Wire Line
+	2550 5900 2750 5900
+Wire Wire Line
+	4000 5950 4150 5950
+Wire Wire Line
+	2300 5800 2750 5800
+Wire Wire Line
+	1800 5600 2750 5600
+Wire Wire Line
+	7700 2850 7800 2850
+Wire Wire Line
+	5700 2800 5900 2800
+Wire Wire Line
+	2550 5100 2550 5400
+Wire Wire Line
+	2150 5500 2750 5500
 $EndSCHEMATC

@@ -60,7 +60,7 @@ F 3 "" H 2200 3000 60  0001 C CNN
 $EndComp
 Text GLabel 4150 5950 2    60   Input ~ 0
 Event_button
-Text GLabel 3500 3300 2    60   Input ~ 0
+Text GLabel 3400 3400 2    60   Input ~ 0
 Event_button
 Text GLabel 1750 5600 0    60   Input ~ 0
 Grind_button
@@ -138,7 +138,7 @@ F 3 "" H 4000 5850 50  0000 C CNN
 	1    4000 5850
 	0    1    1    0   
 $EndComp
-Text GLabel 3400 3400 2    60   Input ~ 0
+Text GLabel 3500 3300 2    60   Input ~ 0
 Button_LED
 $Comp
 L GND #PWR03
@@ -570,4 +570,6 @@ F 3 "" H 7350 5050 50  0000 C CNN
 $EndComp
 Wire Wire Line
 	2300 6500 2300 5800
+Wire Wire Line
+	3150 2750 2900 2750
 $EndSCHEMATC
