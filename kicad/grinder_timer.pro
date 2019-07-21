@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 update=Mon 22 Jul 2019 08:55:56 NZST
+=======
+update=Fri 31 May 2019 09:01:50 NZST
+>>>>>>> d719e339a46533d014c54fb52e06a90c93375ec7
 version=1
 last_client=kicad
 [pcbnew]
