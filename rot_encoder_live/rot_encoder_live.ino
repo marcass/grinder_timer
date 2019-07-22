@@ -1,7 +1,7 @@
 //Runs a mazzer superjolly grinder with timer
 
 
-//#define debug
+#define debug
 
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -48,8 +48,8 @@ const int STATUS_LED_PIN = 9; // pin9 is a PWM pin and allows for analogWrite.
 const int RELAY_PIN_L = 12;
 
 //********************* variables ******************
-long grind_time_preset;
-long new_preset;
+unsigned long grind_time_preset;
+unsigned long new_preset;
 unsigned long grind_start = 0;
 unsigned long grind_time = 0;
 unsigned long adjust_time_start = 0;
@@ -116,13 +116,20 @@ void setup() {
 
 
 void update_display(){
-  int bar_frac;
-
   switch (state) { 
     case STATE_GRINDING:
-      bar_frac = grind_time/grind_time_preset*100;
       if (mode==MODE_TIMER) {
-        drawPercentbar( 0, 40, 128, 20,bar_frac, "grinding......");
+        float bar_frac;
+        bar_frac = (float)grind_time/(float)grind_time_preset * 100;
+        #ifdef debug
+          Serial.print("Grind time is: ");
+          Serial.print(grind_time);
+          Serial.print(", Preset is: ");
+          Serial.print(grind_time_preset);
+          Serial.print(", bar_frac is: ");
+          Serial.println(bar_frac);
+        #endif
+        drawPercentbar( 0, 40, 128, 20, (int)bar_frac);
       }
       break;
     case STATE_IDLE:
@@ -137,9 +144,11 @@ void update_display(){
           display.println("Demand");
         }else{
           display.println("Timer");
-          display.setCursor(20, 20);
+          display.setCursor(0, 40);
           display.print(grind_time_preset);
           display.println(" ms");
+          display.setCursor(0, 60);
+          display.println("grind");
         }        
         display.display(); 
         change_disp = false;
@@ -153,7 +162,7 @@ void update_display(){
       display.setCursor(0, 20);
       // Display static text
       display.println("Done");
-      display.setCursor(20, 20);
+      display.setCursor(0, 40);
       display.println("cooling down");
       display.display();
       change_disp = true;
@@ -198,6 +207,7 @@ void proc_idle() {
       }else {
         grind_time_preset = new_preset;
       }
+      change_disp = true;
       update_display();
       newPreset = true;
     }
@@ -262,11 +272,11 @@ void proc_grinding(){
     }
     grind_time = millis() - grind_start;   //grinding ends if grind time reached or event button is pressed to cancel
     if (grind_time > grind_time_preset){
-      update_display();
       #ifdef debug
         Serial.println("dropped out of grinding due to time reset trigger");
       #endif
       state = STATE_DONE;
+      update_display();
     }
     //handle a cancellation with push of event button
     if (digitalRead(EVENT_BUTTON) == HIGH) { 
@@ -281,6 +291,7 @@ void proc_grinding(){
           Serial.println("Killed by event button");
         #endif
         state = STATE_DONE;
+        update_display();
       }
     }
   }
@@ -354,13 +365,10 @@ void loop() {
   }
 }
 
-void drawPercentbar(int x,int y, int width,int height, int progress, String message) {
+void drawPercentbar(int x,int y, int width,int height, int progress) {
+  display.clearDisplay();
   display.setFont();
   display.setTextSize(1);
-  display.setCursor(0, 10);
-  display.println(message);
-  progress = progress > 100 ? 100 : progress;
-  progress = progress < 0 ? 0 :progress;
   float bar = ((float)(width-4) / 100) * progress; 
   display.drawRect(x, y, width, height, WHITE);
   display.fillRect(x+2, y+2, bar , height-4, WHITE);
@@ -374,6 +382,7 @@ void drawPercentbar(int x,int y, int width,int height, int progress, String mess
     display.print(progress);
     display.print("%");
   }
+  display.display();
 }
  
 /* returns change in encoder state (-1,0,1) */
