@@ -1,23 +1,17 @@
 //Runs a mazzer superjolly grinder with timer
 
-
-//#define debug
+#define debug
 
 #include <Wire.h>
-// https://randomnerdtutorials.com/guide-for-oled-display-with-arduino/
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-
-#define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
-
-// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
-#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+#include <Fonts/FreeSans12pt7b.h>
 
 //preset storage (from reboot for rotary encoder value)
 #include <EEPROM.h>
-#include "/home/mw/git/grinder/EEPROMAnything.h"
+#include "./EEPROMAnything.h"
+//#include "/home/mw/git/grinder_timer/rot_encoder_live/EEPROMAnything.h"
+
 struct config_t
 {
    int preset;
@@ -26,7 +20,16 @@ struct config_t
 //******************** setup encoder*************
 #define ENC_PORT PINC
 const int CLK = A0;
-const int DT = A1;
+const int DT = A1; 
+
+
+//*********************** Setup dislplay ************
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins) adn no reset pin
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
+
 
 //************************ presets ***************
 const int MIN_GRIND_TIME = 5000;
@@ -41,13 +44,13 @@ const long EEPROM_ADJ_THRESH = 600000; //10min
 const int DEBOUNCE_DELAY = 50;
 //pins
 const int GRIND_BUTTON = 6;
-const int EVENT_BUTTON = 5;
+const int EVENT_BUTTON = 5; 
 const int STATUS_LED_PIN = 9; // pin9 is a PWM pin and allows for analogWrite.
 const int RELAY_PIN_L = 12;
 
 //********************* variables ******************
-long grind_time_preset;
-long new_preset;
+unsigned long grind_time_preset;
+unsigned long new_preset;
 unsigned long grind_start = 0;
 unsigned long grind_time = 0;
 unsigned long adjust_time_start = 0;
@@ -60,9 +63,17 @@ unsigned long mode_debounce_time = 0;
 unsigned long grind_debounce_time = 0;
 int status_led_brightness = 0;
 int fade_rate = 10;
+bool change_disp = true;
 
 
 void setup() {
+  //Initialise display
+  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
+    Serial.println(F("SSD1306 allocation failed"));
+    for(;;);
+  }
+  delay(2000);
+  display.clearDisplay();
   // initialize the button pin as an input
   pinMode(GRIND_BUTTON, INPUT);
   digitalWrite(GRIND_BUTTON, LOW);
@@ -70,10 +81,10 @@ void setup() {
   pinMode(STATUS_LED_PIN, OUTPUT);
   // initialize the RELAY as an output
   pinMode(RELAY_PIN_L, OUTPUT);
-  digitalWrite(RELAY_PIN_L, LOW);
+  digitalWrite(RELAY_PIN_L, LOW);  
   //initialize event button
   pinMode(EVENT_BUTTON, INPUT);
-  digitalWrite(EVENT_BUTTON, LOW);
+  digitalWrite(EVENT_BUTTON, LOW); 
   /* Setup encoder pins as inputs */
   pinMode(CLK, INPUT);
   digitalWrite(CLK, HIGH);
@@ -91,76 +102,101 @@ void setup() {
   EEPROM_writeAnything(0, configuration);
 //  Serial.print("Grind time preset = ");
 //  Serial.println(grind_time_preset);
-  // initialize lcd
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) { // Address 0x3D for 128x64
-    Serial.println(F("SSD1306 allocation failed"));
-    for(;;);
-  }
-  delay(2000);
+  // initialize display
   display.clearDisplay();
+  display.setFont(&FreeSans12pt7b);
   display.setTextSize(1);
   display.setTextColor(WHITE);
-  display.setCursor(0, 10);
+  display.setCursor(0, 20);
   // Display static text
-  display.println("Initialising....");
-  display.display();
-  // update_display();
+  display.println("Lets Grind");
+  display.display(); 
+  delay(2000);
+  update_display();
 }
 
 
 void update_display(){
-  float bar_percent;
-
-  switch (state) {
+  switch (state) { 
     case STATE_GRINDING:
-      display.setCursor(0, 10);
-      display.println("grinding...");
-      bar_perecent = (float)grind_time/(float)grind_time_preset;
-      #ifdef debug
-        Serial.print("Percent progress = ");
-        Serial.println(bar_percent);
-      #endif
       if (mode==MODE_TIMER) {
-          drawPercentbar(0, 40, 100, 15, int(bar_percent));
-        }
+        float bar_frac;
+        bar_frac = (float)grind_time/(float)grind_time_preset * 100;
+        #ifdef debug
+          Serial.print("Grind time is: ");
+          Serial.print(grind_time);
+          Serial.print(", Preset is: ");
+          Serial.print(grind_time_preset);
+          Serial.print(", bar_frac is: ");
+          Serial.println(bar_frac);
+        #endif
+        display.clearDisplay();
+        display.setFont();
+        display.setTextSize(1);
+        display.setTextColor(WHITE);
+        display.setCursor(0, 0);
+        display.println("Crushing beans...");
+        drawPercentbar( 0, 40, 128, 20, (int)bar_frac);
+        display.display();
+      }
+      if (mode == MODE_DEMAND) {
+        display.clearDisplay();
+        display.setFont(&FreeSans12pt7b);
+        display.setTextSize(1);
+        display.setTextColor(WHITE);
+        display.setCursor(0, 20);
+        display.println("GRAAHHH...");
+        display.display();
       }
       break;
     case STATE_IDLE:
-      display.setCursor(0,10);
-      if (mode == MODE_DEMAND){
-        display.println("Demand");
-      }else{
-        display.println("Timer  ");
+      if(change_disp) {
+        display.clearDisplay();
+//        for bigger sans serif text
+//        display.setFont(&FreeSans12pt7b);
+//        display.setTextSize(1);
+//        display.setTextColor(WHITE);
+//        display.setCursor(0, 20);
+//        for mono small text
+        display.setFont();
+        display.setTextSize(1);
+        display.setTextColor(WHITE);
+        display.setCursor(0, 0);
+        // Display static text
+        if (mode == MODE_DEMAND){
+          display.println("Mode: Demand");
+          display.setFont(&FreeSans12pt7b);
+          display.setCursor(0, 40);
+          display.println("I await");
+        }else{
+          display.println("Mode: Timer");
+          display.setFont(&FreeSans12pt7b);
+          display.setCursor(0, 40);
+          display.print(grind_time_preset);
+          display.println(" ms");
+//          display.setCursor(0, 60);
+//          display.println("grind");
+        }        
+        display.display(); 
+        change_disp = false;
       }
-      display.setCursor(10,10);
-      sprintf(buf, "%5d ms", grind_time_preset);
-      display.println(buf);
       break;
     case STATE_DONE:
       display.clearDisplay();
-      display.setCursor(0, 10);
-      display.println("Done.");
-      display.setCursor(0,20);
-      display.println("cool down..");
+      display.setFont(&FreeSans12pt7b);
+      display.setTextSize(1);
+      display.setTextColor(WHITE);
+      display.setCursor(0, 20);
+      // Display static text
+      display.println("Done");
+      display.setCursor(0, 40);
+      display.setFont();
+      display.println("Calming down");
+      display.setCursor(0,50);
+      display.println("Be patient");
+      display.display();
+      change_disp = true;
       break;
-  }
-}
-
-void drawPercentbar(int x,int y, int width,int height, int progress) {
-   progress = progress > 100 ? 100 : progress;
-   progress = progress < 0 ? 0 :progress;
-   float bar = ((float)(width-4) / 100) * progress;
-   display.drawRect(x, y, width, height, WHITE);
-   display.fillRect(x+2, y+2, bar , height-4, WHITE);
-  // Display progress text
-  if( height >= 15){
-    display.setCursor((width/2) -3, y+5 );
-    display.setTextSize(1);
-    display.setTextColor(WHITE);
-   if( progress >=50)
-     display.setTextColor(BLACK, WHITE); // 'inverted' text
-     display.print(progress);
-     display.print("%");
   }
 }
 
@@ -173,6 +209,7 @@ void mode_change() {
     mode = MODE_TIMER;
     delay(500);
   }
+  change_disp = true;
 }
 
 
@@ -183,14 +220,12 @@ void proc_idle() {
  /**/
   tmpdata = read_encoder();
   if( tmpdata ) {
-    #ifdef debug
-       Serial.print("Counter value: ");
-       Serial.print(counter, DEC);
-       Serial.print("tmpdata: ");
-       Serial.print(tmpdata);
-       Serial.print("  Grind time = ");
-       Serial.println(grind_time_preset);
-    #endif
+//    Serial.print("Counter value: ");
+//    Serial.print(counter, DEC);
+//    Serial.print("tmpdata: ");
+//    Serial.print(tmpdata);   
+//    Serial.print("  Grind time = ");
+//    Serial.println(grind_time_preset);
     counter += tmpdata;
     x = counter % 4;
     if (x == 0) {
@@ -202,6 +237,7 @@ void proc_idle() {
       }else {
         grind_time_preset = new_preset;
       }
+      change_disp = true;
       update_display();
       newPreset = true;
     }
@@ -210,7 +246,7 @@ void proc_idle() {
 //  Serial.print("  Grind time = ");
 //  Serial.println(grind_time_preset);
   }
-  if (digitalRead(EVENT_BUTTON) == HIGH) {
+  if (digitalRead(EVENT_BUTTON) == HIGH) { 
   //do debounce stuff
   if (mode_debounce_time == 0){
     mode_debounce_time = millis();
@@ -223,7 +259,7 @@ void proc_idle() {
     }
   }
   if (mode == MODE_TIMER) {
-    if (digitalRead(GRIND_BUTTON) == HIGH) {
+    if (digitalRead(GRIND_BUTTON) == HIGH) { 
       //do debounce stuff
       if (grind_debounce_time == 0){
         grind_debounce_time = millis();
@@ -241,7 +277,7 @@ void proc_idle() {
   }
   //if not in timer mode need to grind on button push
   if (mode == MODE_DEMAND) {
-    if (digitalRead(GRIND_BUTTON) == HIGH) {
+    if (digitalRead(GRIND_BUTTON) == HIGH) { 
       //do debounce stuff
       if (grind_debounce_time == 0){
         grind_debounce_time = millis();
@@ -266,15 +302,14 @@ void proc_grinding(){
     }
     grind_time = millis() - grind_start;   //grinding ends if grind time reached or event button is pressed to cancel
     if (grind_time > grind_time_preset){
-      lcd.clear();
-      update_display();
       #ifdef debug
         Serial.println("dropped out of grinding due to time reset trigger");
       #endif
       state = STATE_DONE;
+      update_display();
     }
     //handle a cancellation with push of event button
-    if (digitalRead(EVENT_BUTTON) == HIGH) {
+    if (digitalRead(EVENT_BUTTON) == HIGH) { 
     //do debounce stuff
       if (mode_debounce_time == 0){
         mode_debounce_time = millis();
@@ -286,13 +321,13 @@ void proc_grinding(){
           Serial.println("Killed by event button");
         #endif
         state = STATE_DONE;
+        update_display();
       }
     }
   }
   if (mode == MODE_DEMAND) {   //grind on demand so while button is pushed we will grind
     if (digitalRead(GRIND_BUTTON) == LOW){
-      state = STATE_IDLE;
-      lcd.clear();
+      state = STATE_DONE;
       update_display();
     }
   }
@@ -309,7 +344,6 @@ void proc_done(){
      if (mode == MODE_DEMAND) {
        state = STATE_IDLE;
      }
-     lcd.clear();
      update_display();
   }
 }
@@ -319,7 +353,7 @@ void manage_outputs(){
     digitalWrite(RELAY_PIN_L, HIGH);
 //    digitalWrite(RELAY_PIN_N, HIGH);
     analogWrite(STATUS_LED_PIN, status_led_brightness);
-    status_led_brightness += fade_rate;
+    status_led_brightness += fade_rate;    
     if (status_led_brightness <= 0 || status_led_brightness >= 255) {
       fade_rate = -fade_rate;
     }
@@ -361,6 +395,26 @@ void loop() {
   }
 }
 
+void drawPercentbar(int x,int y, int width,int height, int progress) {
+//  display.clearDisplay();
+  display.setFont();
+  display.setTextSize(1);
+  float bar = ((float)(width-4) / 100) * progress; 
+  display.drawRect(x, y, width, height, WHITE);
+  display.fillRect(x+2, y+2, bar , height-4, WHITE);
+  // Display progress text
+  if( height >= 15){
+    display.setCursor((width/2) -3, y+5 );
+    display.setTextSize(1);
+    display.setTextColor(WHITE);
+  if( progress >=50)
+    display.setTextColor(BLACK, WHITE); // 'inverted' text
+    display.print(progress);
+    display.print("%");
+  }
+//  display.display();
+}
+ 
 /* returns change in encoder state (-1,0,1) */
 int8_t read_encoder()
 {
